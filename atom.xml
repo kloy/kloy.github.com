@@ -1,16 +1,1088 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[My Octopress Blog]]></title>
+  <title><![CDATA[Keith Loy]]></title>
   <link href="http://kloy.github.com/atom.xml" rel="self"/>
   <link href="http://kloy.github.com/"/>
-  <updated>2012-10-04T08:03:28-05:00</updated>
+  <updated>2012-10-05T08:42:05-05:00</updated>
   <id>http://kloy.github.com/</id>
   <author>
-    <name><![CDATA[Your Name]]></name>
+    <name><![CDATA[Keith Loy]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Testing REST API with Behat]]></title>
+    <link href="http://kloy.github.com/blog/2012/05/02/testing-rest-api-with-behat/"/>
+    <updated>2012-05-02T08:17:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/05/02/testing-rest-api-with-behat</id>
+    <content type="html"><![CDATA[<p>Today I&#8217;ll cover testing REST APIs with <a href="http://behat.org/">Behat</a>. I will be using
+<a href="http://laravel.com/">Laravel</a> to build our sample REST API. Also, I will be using guzzle
+as the REST client. This proves to be a much simpler method of testing the REST API then
+writing a driver or extending mink.</p>
+
+<p>This is more of an advanced tutorial so I&#8217;m going to skip over some of the more basic
+setup steps or just briefly mention them. If you need additional setup help just ask in
+the comments.</p>
+
+<p>An example containing all of the code needed can be found on github at
+<a href="https://github.com/kloy/behat-rest-testing">behat-rest-testing</a>.</p>
+
+<!--more-->
+
+
+<h3>Getting Started</h3>
+
+<p>Before we start we need to git a fresh copy of <a href="http://laravel.com/">Laravel</a>.</p>
+
+<pre><code># Clone laravel repo
+git://github.com/laravel/laravel.git
+</code></pre>
+
+<p>You will also need to setup a vhost with a local url of <strong>foo.local</strong> that points to the <strong>public</strong>
+dir of the laravel project.</p>
+
+<p>Now that we have a fresh project go ahead and cd into it and grab composer.</p>
+
+<pre><code># Install composer
+curl -s http://getcomposer.org/installer | php
+</code></pre>
+
+<p>Awesome, now we are ready to setup our <strong>composer.json</strong> with the necessary
+dependencies. Go ahead and create <strong>composer.json</strong> at the top of our project and add the
+following to it.</p>
+
+<pre><code>// composer.json
+{
+    "require": {
+        "behat/behat": "2.3.*",
+        "guzzle/guzzle": "2.4.*"
+    },
+    "config": {
+        "bin-dir": "bin/"
+    }
+}
+</code></pre>
+
+<p>Now that we have our dependencies listed go ahead and install them.</p>
+
+<pre><code># install composer
+php composer.phar install
+</code></pre>
+
+<p>You should now have a few libraries in <strong>vendor/</strong> and an executable for <strong>behat</strong> in
+<strong>bin/</strong>. We can now go ahead and initialize behat and get to working on our custom REST
+Context.</p>
+
+<pre><code># initialize behat
+bin/behat --init
+</code></pre>
+
+<h3>Writing our REST Context</h3>
+
+<p>Create a file in <strong>features/bootstrap/</strong> called <strong>RestContext.php</strong>. Add the following to
+<strong>RestContext.php</strong>&#8230;</p>
+
+<pre><code>// features/bootstrap/RestContext.php
+&lt;?php
+use Behat\Behat\Context\BehatContext;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Rest context.
+ */
+class RestContext extends BehatContext
+{
+
+    private $_restObject        = null;
+    private $_restObjectType    = null;
+    private $_restObjectMethod  = 'get';
+    private $_client            = null;
+    private $_response          = null;
+    private $_requestUrl        = null;
+
+    private $_parameters            = array();
+
+    /**
+     * Initializes context.
+     * Every scenario gets it's own context object.
+     */
+    public function __construct(array $parameters)
+    {
+        // Initialize your context here
+
+        $this-&gt;_restObject  = new stdClass();
+        $this-&gt;_client      = new Guzzle\Service\Client();
+        $this-&gt;_parameters = $parameters;
+    }
+
+    public function getParameter($name)
+    {
+        if (count($this-&gt;_parameters) === 0) {
+
+
+            throw new \Exception('Parameters not loaded!');
+        } else {
+
+            $parameters = $this-&gt;_parameters;
+            return (isset($parameters[$name])) ? $parameters[$name] : null;
+        }
+    }
+
+     /**
+     * @Given /^that I want to make a new "([^"]*)"$/
+     */
+    public function thatIWantToMakeANew($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'post';
+    }
+
+     /**
+     * @Given /^that I want to find a "([^"]*)"$/
+     */
+    public function thatIWantToFindA($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'get';
+    }
+
+    /**
+     * @Given /^that I want to delete a "([^"]*)"$/
+     */
+    public function thatIWantToDeleteA($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'delete';
+    }
+
+    /**
+     * @Given /^that its "([^"]*)" is "([^"]*)"$/
+     */
+    public function thatTheItsIs($propertyName, $propertyValue)
+    {
+        $this-&gt;_restObject-&gt;$propertyName = $propertyValue;
+    }
+
+    /**
+     * @When /^I request "([^"]*)"$/
+     */
+    public function iRequest($pageUrl)
+    {
+        $baseUrl            = $this-&gt;getParameter('base_url');
+        $this-&gt;_requestUrl  = $baseUrl.$pageUrl;
+
+        switch (strtoupper($this-&gt;_restObjectMethod)) {
+            case 'GET':
+                $response = $this-&gt;_client
+                    -&gt;get($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
+                    -&gt;send();
+                break;
+            case 'POST':
+                $postFields = (array)$this-&gt;_restObject;
+                $response = $this-&gt;_client
+                    -&gt;post($this-&gt;_requestUrl,null,$postFields)
+                    -&gt;send();
+                break;
+            case 'DELETE':
+                $response = $this-&gt;_client
+                    -&gt;delete($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
+                    -&gt;send();
+                break;
+        }
+        $this-&gt;_response = $response;
+    }
+
+    /**
+     * @Then /^the response is JSON$/
+     */
+    public function theResponseIsJson()
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (empty($data)) {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response);
+        }
+    }
+
+    /**
+     * @Given /^the response has a "([^"]*)" property$/
+     */
+    public function theResponseHasAProperty($propertyName)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Then /^the "([^"]*)" property equals "([^"]*)"$/
+     */
+    public function thePropertyEquals($propertyName, $propertyValue)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+            if ($data-&gt;$propertyName !== $propertyValue) {
+                throw new \Exception('Property value mismatch! (given: '.$propertyValue.', match: '.$data-&gt;$propertyName.')');
+            }
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Given /^the type of the "([^"]*)" property is ([^"]*)$/
+     */
+    public function theTypeOfThePropertyIsNumeric($propertyName,$typeString)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+            // check our type
+            switch (strtolower($typeString)) {
+                case 'numeric':
+                    if (!is_numeric($data-&gt;$propertyName)) {
+                        throw new Exception("Property '".$propertyName."' is not of the correct type: ".$theTypeOfThePropertyIsNumeric."!\n");
+                    }
+                    break;
+            }
+
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Then /^the response status code should be (\d+)$/
+     */
+    public function theResponseStatusCodeShouldBe($httpStatus)
+    {
+        if ((string)$this-&gt;_response-&gt;getStatusCode() !== $httpStatus) {
+            throw new \Exception('HTTP code does not match '.$httpStatus.
+                ' (actual: '.$this-&gt;_response-&gt;getStatusCode().')');
+        }
+    }
+
+     /**
+     * @Then /^echo last response$/
+     */
+    public function echoLastResponse()
+    {
+        $this-&gt;printDebug(
+            $this-&gt;_requestUrl."\n\n".
+            $this-&gt;_response
+        );
+    }
+}
+</code></pre>
+
+<p>So that was a bit of code. I&#8217;ll sort of explain it in a moment after we get it working. In
+order for these steps to work we need to add <strong>RestContext</strong> as a sub context to <strong>FeatureContext</strong>.
+Let&#8217;s do that.</p>
+
+<pre><code>// features/bootstrap/FeatureContext.php
+&lt;?php
+
+use Behat\Behat\Context\ClosuredContextInterface,
+    Behat\Behat\Context\TranslatedContextInterface,
+    Behat\Behat\Context\BehatContext,
+    Behat\Behat\Exception\PendingException;
+use Behat\Gherkin\Node\PyStringNode,
+    Behat\Gherkin\Node\TableNode;
+
+//
+// Require 3rd-party libraries here:
+//
+//   require_once 'PHPUnit/Autoload.php';
+//   require_once 'PHPUnit/Framework/Assert/Functions.php';
+//
+require_once 'RestContext.php';
+
+/**
+ * Features context.
+ */
+class FeatureContext extends BehatContext
+{
+    /**
+     * Initializes context.
+     * Every scenario gets it's own context object.
+     *
+     * @param   array   $parameters     context parameters (set them up through behat.yml)
+     */
+    public function __construct(array $parameters)
+    {
+        // Initialize your context here
+        $this-&gt;useContext('RestContext', new RestContext($parameters));
+    }
+}
+</code></pre>
+
+<p>So what we did is require our RestContext.php file and instantiate it in
+<em>$this->useContext(&#8216;RestContext&#8217;, new RestContext($parameters));</em>. Now when you type
+<strong>bin/behat -dl</strong> you should see a list commands that look like&#8230;</p>
+
+<pre><code># output from cli
+Given /^that I want to make a new "([^"]*)"$/
+Given /^that I want to find a "([^"]*)"$/
+Given /^that I want to delete a "([^"]*)"$/
+Given /^that its "([^"]*)" is "([^"]*)"$/
+When /^I request "([^"]*)"$/
+Then /^the response is JSON$/
+Given /^the response has a "([^"]*)" property$/
+Then /^the "([^"]*)" property equals "([^"]*)"$/
+Given /^the type of the "([^"]*)" property is ([^"]*)$/
+Then /^the response status code should be (\d+)$/
+Then /^echo last response$/
+</code></pre>
+
+<p>All of these steps are coming from our RestContext class.</p>
+
+<h3>Adding behat.yml</h3>
+
+<p>We need a config file for behat specifying where our api is. Create the file <strong>behat.yml</strong>
+at the top dir of your project.</p>
+
+<pre><code># behat.yml
+default:
+    context:
+        parameters:
+            base_url: http://foo.local
+</code></pre>
+
+<p>The property <strong>base_url</strong> is where we specified the location of our api.</p>
+
+<h3>Writing our features</h3>
+
+<p>Now that all the ground work is in place, let&#8217;s write a few features for testing. Go ahead
+and create a file <strong>features/user.feature</strong> and add the following to it.</p>
+
+<pre><code># features/user.feature
+Feature: Testing the RESTfulness of the Index controller
+Let's see how RESTish this is
+
+Scenario: Creating a new User
+    Given that I want to make a new "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the response is JSON
+    And the response has a "userId" property
+    And the type of the "userId" property is numeric
+    Then the response status code should be 200
+
+Scenario: Finding a User
+    Given that I want to find a "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the "name" property equals "Chris"
+
+Scenario: Deleting a User
+    Given that I want to delete a "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the "status" property equals "true"
+</code></pre>
+
+<p>Now that we have our feature let&#8217;s run it with <strong>bin/behat features/user.feature</strong>. You should
+get errors with a large amount of html spit back out at you. This is because Laravel
+does not have a route/api for what is being tested. We will create that in the next step.</p>
+
+<h3>Creating our API</h3>
+
+<p>Our API is for demonstration purposes only, so I&#8217;m going to go ahead and provide a quick
+stub API that will pass our expectations. Enter the following code into <strong>application/routes.php</strong>.</p>
+
+<pre><code>// in application/routes.php
+Route::post('user', function()
+{
+    $data = array('userId' =&gt; 1);
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+
+Route::get('user', function()
+{
+    $data = array('name' =&gt; 'Chris');
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+
+Route::delete('user', function()
+{
+    $data = array('status' =&gt; "true");
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+</code></pre>
+
+<p>Go ahead and run <strong>bin/behat features/user.feature</strong> and you should get all green with a
+message like so&#8230;</p>
+
+<pre><code>Feature: Testing the RESTfulness of the Index controller
+Let's see how RESTish this is
+
+  Scenario: Creating a new User                      # features/user.feature:4
+    Given that I want to make a new "User"           # RestContext::thatIWantToMakeANew()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the response is JSON                        # RestContext::theResponseIsJson()
+    And the response has a "userId" property         # RestContext::theResponseHasAProperty()
+    And the type of the "userId" property is numeric # RestContext::theTypeOfThePropertyIsNumeric()
+    Then the response status code should be 200      # RestContext::theResponseStatusCodeShouldBe()
+
+  Scenario: Finding a User                           # features/user.feature:13
+    Given that I want to find a "User"               # RestContext::thatIWantToFindA()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the "name" property equals "Chris"          # RestContext::thePropertyEquals()
+
+  Scenario: Deleting a User                          # features/user.feature:19
+    Given that I want to delete a "User"             # RestContext::thatIWantToDeleteA()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the "status" property equals "true"         # RestContext::thePropertyEquals()
+
+3 scenarios (3 passed)
+15 steps (15 passed)
+0m0.131s
+</code></pre>
+
+<h3>Closing notes</h3>
+
+<p>Now that we have a REST API in place and a Rest Context for behat you should be able to
+see how we could test any REST API. If you need more steps to use when testing your REST
+APIs just add them to the RestContext class and they will then be available to use in your
+Gherkin features.</p>
+
+<h3>Credits</h3>
+
+<p>This article was heavily inspired by
+<a href="http://blog.phpdeveloper.org/?p=456">behat + fuelphp = restful testing happiness</a> written
+by Chris Cornutt. The RestContext class is just a refactor of his FeatureContextRest class
+to allow using it as a sub context which I feel makes it more natural to use and easier to
+reuse in projects. I also wanted to make a point that principals apply to any REST API and
+not just one built with FuelPHP.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Yaml config files in Laravel]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel/"/>
+    <updated>2012-04-11T08:14:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel</id>
+    <content type="html"><![CDATA[<p>One of the new features in laravel 3.1 is being able to listen for the the Config::loader event
+allowing for more control over how config files are loaded. With a little bit of work we&#8217;ll
+be able to utilize this &#8220;hook&#8221; to load config files written in yaml as well as php.</p>
+
+<!--more-->
+
+
+<h3>Getting a yaml parser</h3>
+
+<p>Before we can use yaml files as configs, we need a way to parse yaml in php. The best
+and easiest yaml parser I know of for PHP is symfony&#8217;s. We can install symfony&#8217;s yaml
+component using composer. If you don&#8217;t already have composer integrated into your laravel
+app go ahead and checkout my article on
+<a href="http://www.keithloy.me/2012/04/composer-with-laravel/">Composer with laravel</a>.</p>
+
+<p>Now that you have composer integrated make sure your <strong>composer.json</strong> file looks like so&#8230;</p>
+
+<p>  # /path/to/my/project/composer.json
+  {</p>
+
+<pre><code>  "require": {
+      "php": "&gt;=5.3.0",
+      "symfony/yaml": "2.0.*"
+  }
+</code></pre>
+
+<p>  }</p>
+
+<p>And run a composer install if you have not already run composer install, else run composer
+update.</p>
+
+<p>  cd /path/to/my/project
+  php composer.phar install # only if not already installed
+  php composer.phar update</p>
+
+<p>You should now have the symfony yaml component.</p>
+
+<h3>Register the yaml parser</h3>
+
+<p>Before we can use the parser, we need to register the parser in our IoC container.
+We will do that now by adding the following code to the bottom of <strong>start.php</strong>.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  IoC::singleton(&#8216;yaml_parser&#8217;, function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Parser();
+</code></pre>
+
+<p>  });</p>
+
+<p>  IoC::singleton(&#8216;yaml_dumper&#8217;, function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Dumper();
+</code></pre>
+
+<p>  });</p>
+
+<p>What we just did was register the symfony yaml Dumper and Parser objects as singletons
+in our IoC container. We can now get an instance of the yaml parser at any time by calling:</p>
+
+<p>  $parser = IoC::resolve(&#8216;yaml_parser&#8217;);</p>
+
+<h3>Listening to the load event</h3>
+
+<p>Time to hook into that load event mentioned in the intro. We will need to change the
+default <strong>Config::loader</strong> event in <strong>/path/to/project/application/start.php</strong> to use
+our <strong>Config::file()</strong> function instead of the default <strong>Laravel\Config::file()</strong>
+function. We could technically implement an entirely new file loading process for config
+files here, but we only wish to extend the default functionality to meet our needs.
+And&#8230; Here&#8217;s the code.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  /<em>
+  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
+  | Laravel Configuration Loader
+  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
+  |
+  | The Laravel configuration loader is responsible for returning an array
+  | of configuration options for a given bundle and file. By default, we
+  | use the files provided with Laravel; however, you are free to use
+  | your own storage mechanism for configuration arrays.
+  |
+  </em>/</p>
+
+<p>  Laravel\Event::listen(Laravel\Config::loader, function($bundle, $file)
+  {</p>
+
+<pre><code>require_once path('app').'libraries'.DS.'myconfig.php';
+return MyConfig::file($bundle, $file);
+// return Laravel\Config::file($bundle, $file);
+</code></pre>
+
+<p>  });</p>
+
+<p>The require_once might have you scratching your head a bit if you are use to using
+Laravel&#8217;s autoloader. This is a work around as the autoloaders don&#8217;t get initialized
+until later in the start process and if we registered an autoloader for our myconfig.php
+file it would actually get registered twice since the libraries dir get&#8217;s registered as
+well.</p>
+
+<h3>MyConfig::file()</h3>
+
+<p>This is where we extend, or technically override, the default <strong>Laravel\Config::file()</strong>
+function. On the with code!</p>
+
+<p>  # in /path/to/my/project/application/libraries/myconfig.php
+  &lt;?php</p>
+
+<p>  class MyConfig extends Laravel\Config
+  {</p>
+
+<pre><code>/**
+ * Load the configuration items from a configuration file.
+ *
+ * @param  string  $bundle
+ * @param  string  $file
+ * @return array
+ */
+public static function file($bundle, $file)
+{
+  $config = array();
+
+  // Configuration files cascade. Typically, the bundle configuration array is
+  // loaded first, followed by the environment array, providing the convenient
+  // cascading of configuration options across environments.
+  foreach (static::paths($bundle) as $directory)
+  {
+    $semi_path = $directory.$file;
+    if ($directory !== '')
+    {
+      // Typical php configs are most common, so check first.
+      if (file_exists($path = $semi_path.EXT))
+      {
+        $config = array_merge($config, require $path);
+      }
+      // Let's get a yaml config
+      else if (file_exists($path = "$semi_path.yml"))
+      {
+        $parser = IoC::resolve('yaml_parser');
+        $contents = file_get_contents($path);
+        $config = array_merge($config, $parser-&gt;parse($contents));
+      }
+    }
+  }
+
+  return $config;
+}
+</code></pre>
+
+<p>  }</p>
+
+<h3>Final notes</h3>
+
+<p>We can now use yaml files as config files. Nothing special is needed when calling Config::get(),
+just use it as normal. For the astute programmer, you may notice that you can easily
+add more config parsers in the if, if else block.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Laravel as a git submodule]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/10/laravel-as-a-git-submodule/"/>
+    <updated>2012-04-10T08:05:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/10/laravel-as-a-git-submodule</id>
+    <content type="html"><![CDATA[<p>Laravel is a very active framework with minor patches every few days it seems. It is nice
+to be able to easily integrate these patches, as they usually contain bug fixes, into our
+applications easily. I&#8217;ll present the method I use for achieving this which utilizes
+<a href="http://book.git-scm.com/5_submodules.html">git submodules</a>.</p>
+
+<!--more-->
+
+
+<h3>Get laravel</h3>
+
+<p>First let&#8217;s go ahead and download <a href="http://laravel.com/download">laravel</a>. I&#8217;m assuming
+you know how to install the default laravel app on your own server.</p>
+
+<h3>Remove the framework</h3>
+
+<p>Now that we have laravel we are going to do something that seems kind of awkward, delete
+the framework. We are doing this as we will be including the framework as a git
+submodule shortly.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ rm -rf laravel
+</code></pre>
+
+<p>You can of course just use your file browser as well :-D</p>
+
+<h3>Setting up git</h3>
+
+<p>I&#8217;ll assume this is a brand new project where we need to go ahead and setup a git repo.
+Let&#8217;s do that.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ git init
+</code></pre>
+
+<p>Ok, we have our git repo, now let&#8217;s include laravel as a git submodule.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ git submodule add https://github.com/laravel/laravel
+</code></pre>
+
+<p>You should now have a laravel dir in your app. The framework is actually nested in
+<strong>laravel/laravel</strong>.</p>
+
+<h3>Correcting the sys path</h3>
+
+<p>Currently <strong>path(&#8216;sys&#8217;)</strong> expects laravel to be in <strong>/path/to/my/app/laravel</strong> but ours
+is in <strong>/path/to/my/app/laravel/laravel</strong>. Let&#8217;s fix that. Open <strong>/path/to/my/app/paths.php</strong>
+and modify it too look like so.</p>
+
+<pre><code>// /path/to/my/app/paths.php
+// --------------------------------------------------------------
+// The path to the Laravel directory.
+// --------------------------------------------------------------
+$paths['sys'] = 'laravel/laravel';
+</code></pre>
+
+<p>Laravel is now included in your app as a git submodule and will work as any other git
+submodule would! I personally fork laravel and use my forked repo instead of using laravel&#8217;s
+repo to allow for easily contributing back to laravel via pull requests on github. I&#8217;d
+advocate this method if you are familiar with forking.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Composer with Laravel]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/10/composer-with-laravel/"/>
+    <updated>2012-04-10T05:23:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/10/composer-with-laravel</id>
+    <content type="html"><![CDATA[<p>Something I needed in my projects was the ability to seemlessly use
+<a href="http://getcomposer.org/">composer</a> to manage some of my packages as well as third party
+ones such as the symfony components. With a little digging and a bit of work, I achieved
+this goal. In this article I&#8217;ll walk you through the process.</p>
+
+<!--more-->
+
+
+<h3>Let&#8217;s do this</h3>
+
+<p>Firstly, lets install composer.</p>
+
+<pre><code># navigate to your project
+$ cd /path/to/my/project
+# install composer
+$ curl -s http://getcomposer.org/installer | php
+</code></pre>
+
+<p>Now create a <strong>composer.json</strong> file in the top path of your project. Here is my
+<strong>composer.json</strong> file for reference.</p>
+
+<pre><code># in /path/to/my/project/composer.json
+{
+    "require": {
+        "php": "&gt;=5.3.0",
+        "kloy/cli": "0.0.*",
+        "vendor/package": "version",
+        ...
+    }
+}
+</code></pre>
+
+<p>Since we have a <strong>composer.json</strong> file, we can now install our composer packages.</p>
+
+<pre><code># Install composer packages
+$ php composer.phar install
+</code></pre>
+
+<p>All your packages should now be installed in <strong>/path/to/my/project/vendors</strong>. We need to
+setup laravel to use the composer autoloader now.</p>
+
+<p>Modify your <strong>paths.php</strong> file to have a path for where composer installs it&#8217;s packages.</p>
+
+<pre><code># in /path/to/my/project/paths.php
+// --------------------------------------------------------------
+// The path to the composer vendors directory.
+// --------------------------------------------------------------
+$paths['composer'] = 'vendor';
+</code></pre>
+
+<p>Last thing to do is make sure <strong>index.php</strong> is requiring the composer packages using the
+composer autoloader. Add the following code to the <strong>index.php</strong> script.</p>
+
+<pre><code># in /path/to/my/project/public/index.php
+// --------------------------------------------------------------
+// Set the core Laravel path constants.
+// --------------------------------------------------------------
+require '../paths.php';
+
+// --------------------------------------------------------------
+// Autoload composer vendors.
+// --------------------------------------------------------------
+require path('composer').DS.'.composer'.DS.'autoload.php';
+</code></pre>
+
+<p>If you want the composer autoloader to work in artisan as well, just add the same require
+from above to the artisan script. You could put the require statement for composer&#8217;s
+autolaoder in start.php, but this would need to be done for all bundles as well.</p>
+
+<p>Congratualtions! You will now be able to use your composer packages in your application
+and bundles.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Testing Suite for jRuby on Rails with RSpec]]></title>
+    <link href="http://kloy.github.com/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/"/>
+    <updated>2011-02-12T21:08:00-06:00</updated>
+    <id>http://kloy.github.com/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec</id>
+    <content type="html"><![CDATA[<p>It took me some time to figure out how to setup a performant testing environment in Rails 3 when using
+jRuby in my development environment. Therefore, I bring you a tutorial on how to setup my testing
+environment to hopefully save you time if you must also go down this path. I have chosen to use the following
+tools in my testing environment: Rspec for BDD, Spork to decrease loading time of Rails and decrease the time
+it takes to run RSpec tests, ZenTest for auto-testing, and Nailgun to decrease the time to load the JVM.</p>
+
+<!--more-->
+
+
+<h3>A few things to note</h3>
+
+<p>A few things to note before starting this tutorial are as follows. Whenever you see the character &#8220;$&#8221; this denotes
+a terminal command. Type the command following the &#8220;$&#8221; into terminal to execute the command. Also, my text editor
+of choice is Textmate, so if you see &#8220;mate&#8221; in a command replace it with whatever your editor of choice is. One last
+note before we start. I use &#8220;&#8230;&#8221; or the vertical form of &#8220;&#8230;&#8221; to represent additional code pre-existing above.</p>
+
+<p>This tutorial assumes you are using jruby with RVM.
+If you are not using RVM for your jruby installation
+you need to use &#8220;jruby -S&#8221; instead of &#8220;ruby&#8221; when
+executing commands as well as prefix &#8220;gem install&#8221;
+with &#8220;jruby -S&#8221;. For example, &#8220;jruby -S gem install
+ZenTest&#8221;.</p>
+
+<p>I highly recommend using RVM. If you would like
+information on how to install RVM, as well as using
+RVM to install jruby checkout one of my previous posts
+<a href="http://www.keithloy.me/2011/02/install-jruby-on-rails-with-rvm/">Install jRuby on Rails with RVM</a></p>
+
+<h3>Step 1 :: Install RSpec</h3>
+
+<p>RSpec is a Behaviour-Driven Development tool for Ruby programmers.
+RSpec provides clean and readable self documenting tests.</p>
+
+<p><em>Create app without tests</em>
+<code>$ rails new demo -T</code></p>
+
+<p><em>Edit Gemfile</em>
+<code>$ mate Gemfile</code></p>
+
+<pre><code>.
+.
+.
+group :development do
+    gem 'rspec-rails', '2.5.0'
+end
+group :test do
+    gem 'rspec', '2.5.0'
+end
+</code></pre>
+
+<p><em>Install rspec for your current Rails project</em>
+<code>$ rails generate rspec:install</code></p>
+
+<h3>Step 2 :: Install Spork</h3>
+
+<p>Spork will greatly decrease the amount of time it takes to run
+your rspec tests. Unfortunately it does not work with jruby
+by default so we will need to grab a special branch of
+the gem.</p>
+
+<p><em>Grab jruby version of Spork</em>
+<code>$ git clone git://github.com/rdp/spork.git</code>
+<code>$ cd spork</code>
+<code>$ gem build spork.gemspec</code>
+<code>$ gem install spork-0.8.3</code></p>
+
+<p>Now we want to have rspec utilize spork whenever running RSpec tests.</p>
+
+<p><em>Edit .rspec</em>
+<code>$ mate .rspec</code></p>
+
+<p><em>Add the following line to .rspec</em>
+<code>--drb</code></p>
+
+<p>Bootstrapping spork will modify RSpec&#8217;s helpers to use Spork
+in the current Rails project when RSpec is ran.</p>
+
+<p><em>Bootstrap spork</em>
+<code>$ spork --bootstrap</code></p>
+
+<h3>Spork hacks for Rails 3</h3>
+
+<p>Spork will not work with Rails 3, so we need to edit a couple
+of files in order for it to work.</p>
+
+<p><em>Edit spec/spec_helper.rb</em></p>
+
+<pre><code>Spork.prefork do
+  # Loading more in this block will cause your tests to run faster. However,
+  # if you change any configuration or code from libraries loaded here, you'll
+  # need to restart spork for it take effect.
+  ENV["RAILS_ENV"] ||= 'test'
+  unless defined?(Rails)
+    require File.dirname(__FILE__) + "/../config/environment"
+  end
+  require 'rspec/rails'
+
+  # Requires supporting files with custom matchers and macros, etc,
+  # in ./support/ and its subdirectories.
+  Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
+
+  Rspec.configure do |config|
+    # == Mock Framework
+    #
+    # If you prefer to use mocha, flexmock or RR, uncomment the appropriate line:
+    #
+    # config.mock_with :mocha
+    # config.mock_with :flexmock
+    # config.mock_with :rr
+    config.mock_with :rspec
+
+    config.fixture_path = "#{::Rails.root}/spec/fixtures"
+
+    # If you're not using ActiveRecord, or you'd prefer not to run each of your
+    # examples within a transaction, comment the following line or assign false
+    # instead of true.
+    config.use_transactional_fixtures = true
+
+    ### Part of a Spork hack. See http://bit.ly/arY19y
+    # Emulate initializer set_clear_dependencies_hook in
+    # railties/lib/rails/application/bootstrap.rb
+    ActiveSupport::Dependencies.clear
+  end
+end
+</code></pre>
+
+<p><em>Edit config/application.rb</em></p>
+
+<pre><code>class Application &lt; Rails::Application
+  .
+  .
+  .
+    ### Part of a Spork hack. See http://bit.ly/arY19y
+    if Rails.env.test?
+      initializer :after =&gt; :initialize_dependency_mechanism do
+            # Work around initializer in railties/lib/rails/application/bootstrap.rb
+            ActiveSupport::Dependencies.mechanism = :load
+        end
+    end
+end
+</code></pre>
+
+<h3>Step 3 :: Install ZenTest for auto-testing</h3>
+
+<p>ZenTest is a gem that will automatically run your test suite when a file change occurs.</p>
+
+<p><em>Run the following command to install ZenTest</em>
+<code>$ gem install ZenTest</code></p>
+
+<p>To start autotest you must run it from the the root of your Rails project of your dir.</p>
+
+<p><em>Start autotest</em>
+<code>$ autotest</code></p>
+
+<h3>Step 4 :: Bonus: Startup Nailgun</h3>
+
+<p><strong>This step is not necessary, but has allowed me to run my tests in under two seconds
+on my machine.</strong></p>
+
+<p>Nailgun is a server that keeps a JVM open. This minimizes the time our test suite takes
+to run as the JVM is not required to load whenever we run our tests.</p>
+
+<p><em>Start the Nailgun server</em>
+<code>$ ruby --ng-server &amp;</code></p>
+
+<p>Now that the Nailgun server is running navigate to your Rails project&#8217;s dir in terminal.</p>
+
+<p><em>Run RSpec tests using the Nailgun Server</em>
+<code>$ ruby --ng rspec spec/</code></p>
+
+<p>Your tests should now be running significantly faster with the help of nailgun and spork!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Install jRuby on Rails with RVM]]></title>
+    <link href="http://kloy.github.com/blog/2011/02/05/install-jruby-on-rails-with-rvm/"/>
+    <updated>2011-02-05T20:57:00-06:00</updated>
+    <id>http://kloy.github.com/blog/2011/02/05/install-jruby-on-rails-with-rvm</id>
+    <content type="html"><![CDATA[<p>Recently I was asked to switch to using Rails for a new project at my job. At my company we have
+had nightmares deploying our PHP applications on multiple customers environments, therefore I was
+asked to use jRuby instead of Ruby so that we may deploy with the JVM. In my research I came
+across <a href="http://rvm.beginrescueend.com/">RVM</a> (Ruby Version Manager), a great app
+for managing multiple version of Ruby and/or jRuby on a single machine. In the following
+tutorial I will demonstrate how to install RVM and then use it to install jRuby and create
+a gem set. Finally we will install Rails and launch a development server to demonstrate it
+working.</p>
+
+<!--more-->
+
+
+<h3>A few things to know</h3>
+
+<p>When going through this tutorial, the following information is important. Whenever you see
+the symbol &#8220;$&#8221; this denotes the following text is a command to type in terminal. My text
+editor of choice is Textmate, so in my commands you will see &#8220;mate&#8221; sometimes. Feel free to
+replace &#8220;mate&#8221; with &#8220;nano&#8221;, &#8220;vim&#8221;, or which ever your editor of choice might be. Also, I am
+on OS X, so if you are using another Unix OS, replace my instructions to edit &#8220;.profile&#8221;
+with &#8220;.bashrc&#8221; or equivalent.</p>
+
+<h3>Step 1 :: Install RVM (Ruby Version Manager)</h3>
+
+<p><em>Install RVM</em>
+<code>$ bash &lt; &lt;( curl http://rvm.beginrescueend.com/releases/rvm-install-head )</code></p>
+
+<p><em>Open .profile</em>
+<code>$ mate ~/.profile</code></p>
+
+<p><em>Insert the following function at the bottom of the .profile file and save</em></p>
+
+<pre><code># This loads RVM into a shell session.
+[[ -s "$HOME/.rvm/scripts/rvm" ]] &amp;&amp; . "$HOME/.rvm/scripts/rvm"
+</code></pre>
+
+<p><em>Now verify RVM is properly installed</em>
+<code>$ type rvm | head -1</code></p>
+
+<p><em>You should see the following printed in terminal</em>
+<code>rvm is a function</code></p>
+
+<h3>Step 2 :: Install jRuby</h3>
+
+<p><em>Install jRuby with RVM</em>
+<code>$ rvm install jruby-1.5.6</code>
+<code>$ rvm jruby-1.5.6</code></p>
+
+<p><em>Check ruby version in terminal</em>
+<code>$ ruby -v</code></p>
+
+<h3>Step 3 :: Create and set default gem set</h3>
+
+<p>A gem set is a collection of gems you may have for a particular project. The gem set is associated with the current version of
+Ruby being used by RVM. Gem sets are useful for having complete control over which versions of gems you use for each project.</p>
+
+<p><em>Create a gemset</em>
+<code>$ rvm --create use jruby-1.5.6@example</code></p>
+
+<p><em>Set new gemset to the default RVM uses</em>
+<code>$ rvm --default use jruby-1.5.6@example</code></p>
+
+<h3>Step 4 :: Install Rails</h3>
+
+<p><strong>Note DO NOT RUN GEM COMMANDS AS SUDO.</strong> Sudo is different user and circumnavigates where gems are stored relative to where RVM places them.</p>
+
+<p><em>Install Rails</em>
+<code>$ gem install rails --version 3.0.3</code></p>
+
+<h3>Step 5 :: Create Rails project</h3>
+
+<p><em>Create new Rails project and switch to it</em>
+<code>$ rails new demo</code>
+<code>$ cd demo</code></p>
+
+<h3>Step 6 :: Modify Gemfile</h3>
+
+<p><em>Edit the Gemfile</em>
+<code>$ mate Gemfile</code></p>
+
+<p><em>Replace the contents of Gemfile with the following.</em></p>
+
+<pre><code>source 'http://rubygems.org'
+
+gem 'rails', '3.0.3'
+
+if defined?(JRUBY_VERSION)
+  gem 'jdbc-sqlite3', '3.6.14.2.056'
+  gem 'activerecord-jdbc-adapter', '1.1.1'
+  gem 'activerecord-jdbcsqlite3-adapter', '1.1.1'
+  gem 'jruby-openssl', '0.7.3'
+else
+  gem 'sqlite3-ruby', :require =&gt; 'sqlite3'
+end
+</code></pre>
+
+<h3>Step 7 :: Install gems with bundle</h3>
+
+<p><em>Install all of the gems in your Gemfile</em>
+<code>$ bundle install</code></p>
+
+<h3>Step 8 :: Startup WEBrick and checkout your app!</h3>
+
+<p><em>Start a rails development server</em>
+<code>$ rails server</code></p>
+
+<p>Load a browser and navigate to http://localhost:3000 to checkout your dummy app.</p>
+]]></content>
+  </entry>
   
 </feed>

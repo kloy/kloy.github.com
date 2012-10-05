@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Install jRuby on Rails with RVM - Keith Loy</title>
+  <meta name="author" content="Keith Loy">
+
+  
+  <meta name="description" content="Recently I was asked to switch to using Rails for a new project at my job. At my company we have
+had nightmares deploying our PHP applications on &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://kloy.github.com/blog/2011/02/05/install-jruby-on-rails-with-rvm/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Keith Loy" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Keith Loy</a></h1>
+  
+    <h2>Simplifying the Web</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:kloy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Install jRuby on Rails With RVM</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-05T20:57:00-06:00" pubdate data-updated="true">Feb 5<span>th</span>, 2011</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Recently I was asked to switch to using Rails for a new project at my job. At my company we have
+had nightmares deploying our PHP applications on multiple customers environments, therefore I was
+asked to use jRuby instead of Ruby so that we may deploy with the JVM. In my research I came
+across <a href="http://rvm.beginrescueend.com/">RVM</a> (Ruby Version Manager), a great app
+for managing multiple version of Ruby and/or jRuby on a single machine. In the following
+tutorial I will demonstrate how to install RVM and then use it to install jRuby and create
+a gem set. Finally we will install Rails and launch a development server to demonstrate it
+working.</p>
+
+<!--more-->
+
+
+<h3>A few things to know</h3>
+
+<p>When going through this tutorial, the following information is important. Whenever you see
+the symbol &#8220;$&#8221; this denotes the following text is a command to type in terminal. My text
+editor of choice is Textmate, so in my commands you will see &#8220;mate&#8221; sometimes. Feel free to
+replace &#8220;mate&#8221; with &#8220;nano&#8221;, &#8220;vim&#8221;, or which ever your editor of choice might be. Also, I am
+on OS X, so if you are using another Unix OS, replace my instructions to edit &#8220;.profile&#8221;
+with &#8220;.bashrc&#8221; or equivalent.</p>
+
+<h3>Step 1 :: Install RVM (Ruby Version Manager)</h3>
+
+<p><em>Install RVM</em>
+<code>$ bash &lt; &lt;( curl http://rvm.beginrescueend.com/releases/rvm-install-head )</code></p>
+
+<p><em>Open .profile</em>
+<code>$ mate ~/.profile</code></p>
+
+<p><em>Insert the following function at the bottom of the .profile file and save</em></p>
+
+<pre><code># This loads RVM into a shell session.
+[[ -s "$HOME/.rvm/scripts/rvm" ]] &amp;&amp; . "$HOME/.rvm/scripts/rvm"
+</code></pre>
+
+<p><em>Now verify RVM is properly installed</em>
+<code>$ type rvm | head -1</code></p>
+
+<p><em>You should see the following printed in terminal</em>
+<code>rvm is a function</code></p>
+
+<h3>Step 2 :: Install jRuby</h3>
+
+<p><em>Install jRuby with RVM</em>
+<code>$ rvm install jruby-1.5.6</code>
+<code>$ rvm jruby-1.5.6</code></p>
+
+<p><em>Check ruby version in terminal</em>
+<code>$ ruby -v</code></p>
+
+<h3>Step 3 :: Create and set default gem set</h3>
+
+<p>A gem set is a collection of gems you may have for a particular project. The gem set is associated with the current version of
+Ruby being used by RVM. Gem sets are useful for having complete control over which versions of gems you use for each project.</p>
+
+<p><em>Create a gemset</em>
+<code>$ rvm --create use jruby-1.5.6@example</code></p>
+
+<p><em>Set new gemset to the default RVM uses</em>
+<code>$ rvm --default use jruby-1.5.6@example</code></p>
+
+<h3>Step 4 :: Install Rails</h3>
+
+<p><strong>Note DO NOT RUN GEM COMMANDS AS SUDO.</strong> Sudo is different user and circumnavigates where gems are stored relative to where RVM places them.</p>
+
+<p><em>Install Rails</em>
+<code>$ gem install rails --version 3.0.3</code></p>
+
+<h3>Step 5 :: Create Rails project</h3>
+
+<p><em>Create new Rails project and switch to it</em>
+<code>$ rails new demo</code>
+<code>$ cd demo</code></p>
+
+<h3>Step 6 :: Modify Gemfile</h3>
+
+<p><em>Edit the Gemfile</em>
+<code>$ mate Gemfile</code></p>
+
+<p><em>Replace the contents of Gemfile with the following.</em></p>
+
+<pre><code>source 'http://rubygems.org'
+
+gem 'rails', '3.0.3'
+
+if defined?(JRUBY_VERSION)
+  gem 'jdbc-sqlite3', '3.6.14.2.056'
+  gem 'activerecord-jdbc-adapter', '1.1.1'
+  gem 'activerecord-jdbcsqlite3-adapter', '1.1.1'
+  gem 'jruby-openssl', '0.7.3'
+else
+  gem 'sqlite3-ruby', :require =&gt; 'sqlite3'
+end
+</code></pre>
+
+<h3>Step 7 :: Install gems with bundle</h3>
+
+<p><em>Install all of the gems in your Gemfile</em>
+<code>$ bundle install</code></p>
+
+<h3>Step 8 :: Startup WEBrick and checkout your app!</h3>
+
+<p><em>Start a rails development server</em>
+<code>$ rails server</code></p>
+
+<p>Load a browser and navigate to http://localhost:3000 to checkout your dummy app.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Keith Loy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-05T20:57:00-06:00" pubdate data-updated="true">Feb 5<span>th</span>, 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/ruby-on-rails/'>Ruby on Rails</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://kloy.github.com/blog/2011/02/05/install-jruby-on-rails-with-rvm/" data-via="guynamedkeith" data-counturl="http://kloy.github.com/blog/2011/02/05/install-jruby-on-rails-with-rvm/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="small"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+      
+        <a class="basic-alignment right" href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/" title="Next Post: Testing Suite for jRuby on Rails with RSpec">Testing Suite for jRuby on Rails with RSpec &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/05/02/testing-rest-api-with-behat/">Testing REST API with Behat</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/11/yaml-config-files-in-laravel/">Yaml config files in Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/laravel-as-a-git-submodule/">Laravel as a git submodule</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/composer-with-laravel/">Composer with Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">Testing Suite for jRuby on Rails with RSpec</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/kloy">@kloy</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kloy',
+            count: 4,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+<section>
+  <h1>Latest Tweets</h1>
+  <ul id="tweets">
+    <li class="loading">Status updating...</li>
+  </ul>
+  <script type="text/javascript">
+    $.domReady(function(){
+      getTwitterFeed("guynamedkeith", 4, false);
+    });
+  </script>
+  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
+  
+    <a href="http://twitter.com/guynamedkeith" class="twitter-follow-button" data-show-count="false">Follow @guynamedkeith</a>
+  
+</section>
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/ckeithloy@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Keith Loy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

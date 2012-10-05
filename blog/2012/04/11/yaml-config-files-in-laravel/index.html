@@ -1,0 +1,451 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Yaml config files in Laravel - Keith Loy</title>
+  <meta name="author" content="Keith Loy">
+
+  
+  <meta name="description" content="One of the new features in laravel 3.1 is being able to listen for the the Config::loader event
+allowing for more control over how config files are &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Keith Loy" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Keith Loy</a></h1>
+  
+    <h2>Simplifying the Web</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:kloy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Yaml Config Files in Laravel</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-11T08:14:00-05:00" pubdate data-updated="true">Apr 11<span>th</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One of the new features in laravel 3.1 is being able to listen for the the Config::loader event
+allowing for more control over how config files are loaded. With a little bit of work we&#8217;ll
+be able to utilize this &#8220;hook&#8221; to load config files written in yaml as well as php.</p>
+
+<!--more-->
+
+
+<h3>Getting a yaml parser</h3>
+
+<p>Before we can use yaml files as configs, we need a way to parse yaml in php. The best
+and easiest yaml parser I know of for PHP is symfony&#8217;s. We can install symfony&#8217;s yaml
+component using composer. If you don&#8217;t already have composer integrated into your laravel
+app go ahead and checkout my article on
+<a href="http://www.keithloy.me/2012/04/composer-with-laravel/">Composer with laravel</a>.</p>
+
+<p>Now that you have composer integrated make sure your <strong>composer.json</strong> file looks like so&#8230;</p>
+
+<p>  # /path/to/my/project/composer.json
+  {</p>
+
+<pre><code>  "require": {
+      "php": "&gt;=5.3.0",
+      "symfony/yaml": "2.0.*"
+  }
+</code></pre>
+
+<p>  }</p>
+
+<p>And run a composer install if you have not already run composer install, else run composer
+update.</p>
+
+<p>  cd /path/to/my/project
+  php composer.phar install # only if not already installed
+  php composer.phar update</p>
+
+<p>You should now have the symfony yaml component.</p>
+
+<h3>Register the yaml parser</h3>
+
+<p>Before we can use the parser, we need to register the parser in our IoC container.
+We will do that now by adding the following code to the bottom of <strong>start.php</strong>.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  IoC::singleton(&#8216;yaml_parser&#8217;, function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Parser();
+</code></pre>
+
+<p>  });</p>
+
+<p>  IoC::singleton(&#8216;yaml_dumper&#8217;, function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Dumper();
+</code></pre>
+
+<p>  });</p>
+
+<p>What we just did was register the symfony yaml Dumper and Parser objects as singletons
+in our IoC container. We can now get an instance of the yaml parser at any time by calling:</p>
+
+<p>  $parser = IoC::resolve(&#8216;yaml_parser&#8217;);</p>
+
+<h3>Listening to the load event</h3>
+
+<p>Time to hook into that load event mentioned in the intro. We will need to change the
+default <strong>Config::loader</strong> event in <strong>/path/to/project/application/start.php</strong> to use
+our <strong>Config::file()</strong> function instead of the default <strong>Laravel\Config::file()</strong>
+function. We could technically implement an entirely new file loading process for config
+files here, but we only wish to extend the default functionality to meet our needs.
+And&#8230; Here&#8217;s the code.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  /<em>
+  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
+  | Laravel Configuration Loader
+  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
+  |
+  | The Laravel configuration loader is responsible for returning an array
+  | of configuration options for a given bundle and file. By default, we
+  | use the files provided with Laravel; however, you are free to use
+  | your own storage mechanism for configuration arrays.
+  |
+  </em>/</p>
+
+<p>  Laravel\Event::listen(Laravel\Config::loader, function($bundle, $file)
+  {</p>
+
+<pre><code>require_once path('app').'libraries'.DS.'myconfig.php';
+return MyConfig::file($bundle, $file);
+// return Laravel\Config::file($bundle, $file);
+</code></pre>
+
+<p>  });</p>
+
+<p>The require_once might have you scratching your head a bit if you are use to using
+Laravel&#8217;s autoloader. This is a work around as the autoloaders don&#8217;t get initialized
+until later in the start process and if we registered an autoloader for our myconfig.php
+file it would actually get registered twice since the libraries dir get&#8217;s registered as
+well.</p>
+
+<h3>MyConfig::file()</h3>
+
+<p>This is where we extend, or technically override, the default <strong>Laravel\Config::file()</strong>
+function. On the with code!</p>
+
+<p>  # in /path/to/my/project/application/libraries/myconfig.php
+  &lt;?php</p>
+
+<p>  class MyConfig extends Laravel\Config
+  {</p>
+
+<pre><code>/**
+ * Load the configuration items from a configuration file.
+ *
+ * @param  string  $bundle
+ * @param  string  $file
+ * @return array
+ */
+public static function file($bundle, $file)
+{
+  $config = array();
+
+  // Configuration files cascade. Typically, the bundle configuration array is
+  // loaded first, followed by the environment array, providing the convenient
+  // cascading of configuration options across environments.
+  foreach (static::paths($bundle) as $directory)
+  {
+    $semi_path = $directory.$file;
+    if ($directory !== '')
+    {
+      // Typical php configs are most common, so check first.
+      if (file_exists($path = $semi_path.EXT))
+      {
+        $config = array_merge($config, require $path);
+      }
+      // Let's get a yaml config
+      else if (file_exists($path = "$semi_path.yml"))
+      {
+        $parser = IoC::resolve('yaml_parser');
+        $contents = file_get_contents($path);
+        $config = array_merge($config, $parser-&gt;parse($contents));
+      }
+    }
+  }
+
+  return $config;
+}
+</code></pre>
+
+<p>  }</p>
+
+<h3>Final notes</h3>
+
+<p>We can now use yaml files as config files. Nothing special is needed when calling Config::get(),
+just use it as normal. For the astute programmer, you may notice that you can easily
+add more config parsers in the if, if else block.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Keith Loy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-11T08:14:00-05:00" pubdate data-updated="true">Apr 11<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/laravel/'>Laravel</a>, <a class='category' href='/blog/categories/php/'>PHP</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel/" data-via="guynamedkeith" data-counturl="http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="small"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/04/10/laravel-as-a-git-submodule/" title="Previous Post: Laravel as a git submodule">&laquo; Laravel as a git submodule</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/05/02/testing-rest-api-with-behat/" title="Next Post: Testing REST API with Behat">Testing REST API with Behat &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/05/02/testing-rest-api-with-behat/">Testing REST API with Behat</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/11/yaml-config-files-in-laravel/">Yaml config files in Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/laravel-as-a-git-submodule/">Laravel as a git submodule</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/composer-with-laravel/">Composer with Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">Testing Suite for jRuby on Rails with RSpec</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/kloy">@kloy</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kloy',
+            count: 4,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+<section>
+  <h1>Latest Tweets</h1>
+  <ul id="tweets">
+    <li class="loading">Status updating...</li>
+  </ul>
+  <script type="text/javascript">
+    $.domReady(function(){
+      getTwitterFeed("guynamedkeith", 4, false);
+    });
+  </script>
+  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
+  
+    <a href="http://twitter.com/guynamedkeith" class="twitter-follow-button" data-show-count="false">Follow @guynamedkeith</a>
+  
+</section>
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/ckeithloy@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Keith Loy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

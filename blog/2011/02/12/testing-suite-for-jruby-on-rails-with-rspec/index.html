@@ -1,0 +1,464 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Testing Suite for jRuby on Rails with RSpec - Keith Loy</title>
+  <meta name="author" content="Keith Loy">
+
+  
+  <meta name="description" content="It took me some time to figure out how to setup a performant testing environment in Rails 3 when using
+jRuby in my development environment. Therefore &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://kloy.github.com/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Keith Loy" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Keith Loy</a></h1>
+  
+    <h2>Simplifying the Web</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:kloy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Testing Suite for jRuby on Rails With RSpec</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-12T21:08:00-06:00" pubdate data-updated="true">Feb 12<span>th</span>, 2011</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>It took me some time to figure out how to setup a performant testing environment in Rails 3 when using
+jRuby in my development environment. Therefore, I bring you a tutorial on how to setup my testing
+environment to hopefully save you time if you must also go down this path. I have chosen to use the following
+tools in my testing environment: Rspec for BDD, Spork to decrease loading time of Rails and decrease the time
+it takes to run RSpec tests, ZenTest for auto-testing, and Nailgun to decrease the time to load the JVM.</p>
+
+<!--more-->
+
+
+<h3>A few things to note</h3>
+
+<p>A few things to note before starting this tutorial are as follows. Whenever you see the character &#8220;$&#8221; this denotes
+a terminal command. Type the command following the &#8220;$&#8221; into terminal to execute the command. Also, my text editor
+of choice is Textmate, so if you see &#8220;mate&#8221; in a command replace it with whatever your editor of choice is. One last
+note before we start. I use &#8220;&#8230;&#8221; or the vertical form of &#8220;&#8230;&#8221; to represent additional code pre-existing above.</p>
+
+<p>This tutorial assumes you are using jruby with RVM.
+If you are not using RVM for your jruby installation
+you need to use &#8220;jruby -S&#8221; instead of &#8220;ruby&#8221; when
+executing commands as well as prefix &#8220;gem install&#8221;
+with &#8220;jruby -S&#8221;. For example, &#8220;jruby -S gem install
+ZenTest&#8221;.</p>
+
+<p>I highly recommend using RVM. If you would like
+information on how to install RVM, as well as using
+RVM to install jruby checkout one of my previous posts
+<a href="http://www.keithloy.me/2011/02/install-jruby-on-rails-with-rvm/">Install jRuby on Rails with RVM</a></p>
+
+<h3>Step 1 :: Install RSpec</h3>
+
+<p>RSpec is a Behaviour-Driven Development tool for Ruby programmers.
+RSpec provides clean and readable self documenting tests.</p>
+
+<p><em>Create app without tests</em>
+<code>$ rails new demo -T</code></p>
+
+<p><em>Edit Gemfile</em>
+<code>$ mate Gemfile</code></p>
+
+<pre><code>.
+.
+.
+group :development do
+    gem 'rspec-rails', '2.5.0'
+end
+group :test do
+    gem 'rspec', '2.5.0'
+end
+</code></pre>
+
+<p><em>Install rspec for your current Rails project</em>
+<code>$ rails generate rspec:install</code></p>
+
+<h3>Step 2 :: Install Spork</h3>
+
+<p>Spork will greatly decrease the amount of time it takes to run
+your rspec tests. Unfortunately it does not work with jruby
+by default so we will need to grab a special branch of
+the gem.</p>
+
+<p><em>Grab jruby version of Spork</em>
+<code>$ git clone git://github.com/rdp/spork.git</code>
+<code>$ cd spork</code>
+<code>$ gem build spork.gemspec</code>
+<code>$ gem install spork-0.8.3</code></p>
+
+<p>Now we want to have rspec utilize spork whenever running RSpec tests.</p>
+
+<p><em>Edit .rspec</em>
+<code>$ mate .rspec</code></p>
+
+<p><em>Add the following line to .rspec</em>
+<code>--drb</code></p>
+
+<p>Bootstrapping spork will modify RSpec&#8217;s helpers to use Spork
+in the current Rails project when RSpec is ran.</p>
+
+<p><em>Bootstrap spork</em>
+<code>$ spork --bootstrap</code></p>
+
+<h3>Spork hacks for Rails 3</h3>
+
+<p>Spork will not work with Rails 3, so we need to edit a couple
+of files in order for it to work.</p>
+
+<p><em>Edit spec/spec_helper.rb</em></p>
+
+<pre><code>Spork.prefork do
+  # Loading more in this block will cause your tests to run faster. However,
+  # if you change any configuration or code from libraries loaded here, you'll
+  # need to restart spork for it take effect.
+  ENV["RAILS_ENV"] ||= 'test'
+  unless defined?(Rails)
+    require File.dirname(__FILE__) + "/../config/environment"
+  end
+  require 'rspec/rails'
+
+  # Requires supporting files with custom matchers and macros, etc,
+  # in ./support/ and its subdirectories.
+  Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
+
+  Rspec.configure do |config|
+    # == Mock Framework
+    #
+    # If you prefer to use mocha, flexmock or RR, uncomment the appropriate line:
+    #
+    # config.mock_with :mocha
+    # config.mock_with :flexmock
+    # config.mock_with :rr
+    config.mock_with :rspec
+
+    config.fixture_path = "#{::Rails.root}/spec/fixtures"
+
+    # If you're not using ActiveRecord, or you'd prefer not to run each of your
+    # examples within a transaction, comment the following line or assign false
+    # instead of true.
+    config.use_transactional_fixtures = true
+
+    ### Part of a Spork hack. See http://bit.ly/arY19y
+    # Emulate initializer set_clear_dependencies_hook in
+    # railties/lib/rails/application/bootstrap.rb
+    ActiveSupport::Dependencies.clear
+  end
+end
+</code></pre>
+
+<p><em>Edit config/application.rb</em></p>
+
+<pre><code>class Application &lt; Rails::Application
+  .
+  .
+  .
+    ### Part of a Spork hack. See http://bit.ly/arY19y
+    if Rails.env.test?
+      initializer :after =&gt; :initialize_dependency_mechanism do
+            # Work around initializer in railties/lib/rails/application/bootstrap.rb
+            ActiveSupport::Dependencies.mechanism = :load
+        end
+    end
+end
+</code></pre>
+
+<h3>Step 3 :: Install ZenTest for auto-testing</h3>
+
+<p>ZenTest is a gem that will automatically run your test suite when a file change occurs.</p>
+
+<p><em>Run the following command to install ZenTest</em>
+<code>$ gem install ZenTest</code></p>
+
+<p>To start autotest you must run it from the the root of your Rails project of your dir.</p>
+
+<p><em>Start autotest</em>
+<code>$ autotest</code></p>
+
+<h3>Step 4 :: Bonus: Startup Nailgun</h3>
+
+<p><strong>This step is not necessary, but has allowed me to run my tests in under two seconds
+on my machine.</strong></p>
+
+<p>Nailgun is a server that keeps a JVM open. This minimizes the time our test suite takes
+to run as the JVM is not required to load whenever we run our tests.</p>
+
+<p><em>Start the Nailgun server</em>
+<code>$ ruby --ng-server &amp;</code></p>
+
+<p>Now that the Nailgun server is running navigate to your Rails project&#8217;s dir in terminal.</p>
+
+<p><em>Run RSpec tests using the Nailgun Server</em>
+<code>$ ruby --ng rspec spec/</code></p>
+
+<p>Your tests should now be running significantly faster with the help of nailgun and spork!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Keith Loy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2011-02-12T21:08:00-06:00" pubdate data-updated="true">Feb 12<span>th</span>, 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/ruby-on-rails/'>Ruby on Rails</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://kloy.github.com/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/" data-via="guynamedkeith" data-counturl="http://kloy.github.com/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="small"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/02/05/install-jruby-on-rails-with-rvm/" title="Previous Post: Install jRuby on Rails with RVM">&laquo; Install jRuby on Rails with RVM</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/04/10/composer-with-laravel/" title="Next Post: Composer with Laravel">Composer with Laravel &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/05/02/testing-rest-api-with-behat/">Testing REST API with Behat</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/11/yaml-config-files-in-laravel/">Yaml config files in Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/laravel-as-a-git-submodule/">Laravel as a git submodule</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/composer-with-laravel/">Composer with Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">Testing Suite for jRuby on Rails with RSpec</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/kloy">@kloy</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kloy',
+            count: 4,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+<section>
+  <h1>Latest Tweets</h1>
+  <ul id="tweets">
+    <li class="loading">Status updating...</li>
+  </ul>
+  <script type="text/javascript">
+    $.domReady(function(){
+      getTwitterFeed("guynamedkeith", 4, false);
+    });
+  </script>
+  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
+  
+    <a href="http://twitter.com/guynamedkeith" class="twitter-follow-button" data-show-count="false">Follow @guynamedkeith</a>
+  
+</section>
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/ckeithloy@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Keith Loy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -5,13 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Blog Archive - Keith Loy</title>
+  <title>Composer with Laravel - Keith Loy</title>
   <meta name="author" content="Keith Loy">
 
   
-  <meta name="description" content="Blog Archive 2012 Testing REST API with Behat
-May 02 2012 Yaml config files in Laravel
-Apr 11 2012 posted in Laravel, PHP Laravel as a git submodule &hellip;">
+  <meta name="description" content="Something I needed in my projects was the ability to seemlessly use
+composer to manage some of my packages as well as third party
+ones such as the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -20,7 +20,7 @@ Apr 11 2012 posted in Laravel, PHP Laravel as a git submodule &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://kloy.github.com/blog/archives/">
+  <link rel="canonical" href="http://kloy.github.com/blog/2012/04/10/composer-with-laravel/">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script src="/javascripts/modernizr-2.0.js"></script>
@@ -65,104 +65,160 @@ Apr 11 2012 posted in Laravel, PHP Laravel as a git submodule &hellip;">
   <div id="main">
     <div id="content">
       <div>
-<article role="article">
+<article class="hentry" role="article">
   
   <header>
-    <h1 class="entry-title">Blog Archive</h1>
+    
+      <h1 class="entry-title">Composer With Laravel</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-10T05:23:00-05:00" pubdate data-updated="true">Apr 10<span>th</span>, 2012</time>
+        
+      </p>
     
   </header>
-  
-  <div id="blog-archives">
 
 
+<div class="entry-content"><p>Something I needed in my projects was the ability to seemlessly use
+<a href="http://getcomposer.org/">composer</a> to manage some of my packages as well as third party
+ones such as the symfony components. With a little digging and a bit of work, I achieved
+this goal. In this article I&#8217;ll walk you through the process.</p>
 
-  
-  <h2>2012</h2>
-
-<article>
-  
-<h1><a href="/blog/2012/05/02/testing-rest-api-with-behat/">Testing REST API with Behat</a></h1>
-<time datetime="2012-05-02T08:17:00-05:00" pubdate><span class='month'>May</span> <span class='day'>02</span> <span class='year'>2012</span></time>
+<!--more-->
 
 
-</article>
+<h3>Let&#8217;s do this</h3>
 
+<p>Firstly, lets install composer.</p>
 
+<pre><code># navigate to your project
+$ cd /path/to/my/project
+# install composer
+$ curl -s http://getcomposer.org/installer | php
+</code></pre>
 
-<article>
-  
-<h1><a href="/blog/2012/04/11/yaml-config-files-in-laravel/">Yaml config files in Laravel</a></h1>
-<time datetime="2012-04-11T08:14:00-05:00" pubdate><span class='month'>Apr</span> <span class='day'>11</span> <span class='year'>2012</span></time>
+<p>Now create a <strong>composer.json</strong> file in the top path of your project. Here is my
+<strong>composer.json</strong> file for reference.</p>
 
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/laravel/'>Laravel</a>, <a class='category' href='/blog/categories/php/'>PHP</a></span>
-</footer>
+<pre><code># in /path/to/my/project/composer.json
+{
+    "require": {
+        "php": "&gt;=5.3.0",
+        "kloy/cli": "0.0.*",
+        "vendor/package": "version",
+        ...
+    }
+}
+</code></pre>
 
+<p>Since we have a <strong>composer.json</strong> file, we can now install our composer packages.</p>
 
-</article>
+<pre><code># Install composer packages
+$ php composer.phar install
+</code></pre>
 
+<p>All your packages should now be installed in <strong>/path/to/my/project/vendors</strong>. We need to
+setup laravel to use the composer autoloader now.</p>
 
+<p>Modify your <strong>paths.php</strong> file to have a path for where composer installs it&#8217;s packages.</p>
 
-<article>
-  
-<h1><a href="/blog/2012/04/10/laravel-as-a-git-submodule/">Laravel as a git submodule</a></h1>
-<time datetime="2012-04-10T08:05:00-05:00" pubdate><span class='month'>Apr</span> <span class='day'>10</span> <span class='year'>2012</span></time>
+<pre><code># in /path/to/my/project/paths.php
+// --------------------------------------------------------------
+// The path to the composer vendors directory.
+// --------------------------------------------------------------
+$paths['composer'] = 'vendor';
+</code></pre>
 
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/laravel/'>Laravel</a>, <a class='category' href='/blog/categories/php/'>PHP</a></span>
-</footer>
+<p>Last thing to do is make sure <strong>index.php</strong> is requiring the composer packages using the
+composer autoloader. Add the following code to the <strong>index.php</strong> script.</p>
 
+<pre><code># in /path/to/my/project/public/index.php
+// --------------------------------------------------------------
+// Set the core Laravel path constants.
+// --------------------------------------------------------------
+require '../paths.php';
 
-</article>
+// --------------------------------------------------------------
+// Autoload composer vendors.
+// --------------------------------------------------------------
+require path('composer').DS.'.composer'.DS.'autoload.php';
+</code></pre>
 
+<p>If you want the composer autoloader to work in artisan as well, just add the same require
+from above to the artisan script. You could put the require statement for composer&#8217;s
+autolaoder in start.php, but this would need to be done for all bundles as well.</p>
 
-
-<article>
-  
-<h1><a href="/blog/2012/04/10/composer-with-laravel/">Composer with Laravel</a></h1>
-<time datetime="2012-04-10T05:23:00-05:00" pubdate><span class='month'>Apr</span> <span class='day'>10</span> <span class='year'>2012</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/laravel/'>Laravel</a>, <a class='category' href='/blog/categories/php/'>PHP</a></span>
-</footer>
-
-
-</article>
-
-
-
-  
-  <h2>2011</h2>
-
-<article>
-  
-<h1><a href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">Testing Suite for jRuby on Rails with RSpec</a></h1>
-<time datetime="2011-02-12T21:08:00-06:00" pubdate><span class='month'>Feb</span> <span class='day'>12</span> <span class='year'>2011</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/ruby-on-rails/'>Ruby on Rails</a></span>
-</footer>
-
-
-</article>
-
-
-
-<article>
-  
-<h1><a href="/blog/2011/02/05/install-jruby-on-rails-with-rvm/">Install jRuby on Rails with RVM</a></h1>
-<time datetime="2011-02-05T20:57:00-06:00" pubdate><span class='month'>Feb</span> <span class='day'>05</span> <span class='year'>2011</span></time>
-
-<footer>
-  <span class="categories">posted in <a class='category' href='/blog/categories/ruby-on-rails/'>Ruby on Rails</a></span>
-</footer>
-
-
-</article>
-
+<p>Congratualtions! You will now be able to use your composer packages in your application
+and bundles.</p>
 </div>
 
+
+  <footer>
+    <p class="meta">
+      
   
+
+<span class="byline author vcard">Posted by <span class="fn">Keith Loy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-04-10T05:23:00-05:00" pubdate data-updated="true">Apr 10<span>th</span>, 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/laravel/'>Laravel</a>, <a class='category' href='/blog/categories/php/'>PHP</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://kloy.github.com/blog/2012/04/10/composer-with-laravel/" data-via="guynamedkeith" data-counturl="http://kloy.github.com/blog/2012/04/10/composer-with-laravel/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="small"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/" title="Previous Post: Testing Suite for jRuby on Rails with RSpec">&laquo; Testing Suite for jRuby on Rails with RSpec</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2012/04/10/laravel-as-a-git-submodule/" title="Next Post: Laravel as a git submodule">Laravel as a git submodule &raquo;</a>
+      
+    </p>
+  </footer>
 </article>
 
 </div>

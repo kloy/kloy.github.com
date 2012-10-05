@@ -1,0 +1,744 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Testing REST API with Behat - Keith Loy</title>
+  <meta name="author" content="Keith Loy">
+
+  
+  <meta name="description" content="Today I&#8217;ll cover testing REST APIs with Behat. I will be using
+Laravel to build our sample REST API. Also, I will be using guzzle
+as the REST &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://kloy.github.com/blog/2012/05/02/testing-rest-api-with-behat/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Keith Loy" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Keith Loy</a></h1>
+  
+    <h2>Simplifying the Web</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:kloy.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Testing REST API With Behat</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-05-02T08:17:00-05:00" pubdate data-updated="true">May 2<span>nd</span>, 2012</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Today I&#8217;ll cover testing REST APIs with <a href="http://behat.org/">Behat</a>. I will be using
+<a href="http://laravel.com/">Laravel</a> to build our sample REST API. Also, I will be using guzzle
+as the REST client. This proves to be a much simpler method of testing the REST API then
+writing a driver or extending mink.</p>
+
+<p>This is more of an advanced tutorial so I&#8217;m going to skip over some of the more basic
+setup steps or just briefly mention them. If you need additional setup help just ask in
+the comments.</p>
+
+<p>An example containing all of the code needed can be found on github at
+<a href="https://github.com/kloy/behat-rest-testing">behat-rest-testing</a>.</p>
+
+<!--more-->
+
+
+<h3>Getting Started</h3>
+
+<p>Before we start we need to git a fresh copy of <a href="http://laravel.com/">Laravel</a>.</p>
+
+<pre><code># Clone laravel repo
+git://github.com/laravel/laravel.git
+</code></pre>
+
+<p>You will also need to setup a vhost with a local url of <strong>foo.local</strong> that points to the <strong>public</strong>
+dir of the laravel project.</p>
+
+<p>Now that we have a fresh project go ahead and cd into it and grab composer.</p>
+
+<pre><code># Install composer
+curl -s http://getcomposer.org/installer | php
+</code></pre>
+
+<p>Awesome, now we are ready to setup our <strong>composer.json</strong> with the necessary
+dependencies. Go ahead and create <strong>composer.json</strong> at the top of our project and add the
+following to it.</p>
+
+<pre><code>// composer.json
+{
+    "require": {
+        "behat/behat": "2.3.*",
+        "guzzle/guzzle": "2.4.*"
+    },
+    "config": {
+        "bin-dir": "bin/"
+    }
+}
+</code></pre>
+
+<p>Now that we have our dependencies listed go ahead and install them.</p>
+
+<pre><code># install composer
+php composer.phar install
+</code></pre>
+
+<p>You should now have a few libraries in <strong>vendor/</strong> and an executable for <strong>behat</strong> in
+<strong>bin/</strong>. We can now go ahead and initialize behat and get to working on our custom REST
+Context.</p>
+
+<pre><code># initialize behat
+bin/behat --init
+</code></pre>
+
+<h3>Writing our REST Context</h3>
+
+<p>Create a file in <strong>features/bootstrap/</strong> called <strong>RestContext.php</strong>. Add the following to
+<strong>RestContext.php</strong>&#8230;</p>
+
+<pre><code>// features/bootstrap/RestContext.php
+&lt;?php
+use Behat\Behat\Context\BehatContext;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * Rest context.
+ */
+class RestContext extends BehatContext
+{
+
+    private $_restObject        = null;
+    private $_restObjectType    = null;
+    private $_restObjectMethod  = 'get';
+    private $_client            = null;
+    private $_response          = null;
+    private $_requestUrl        = null;
+
+    private $_parameters            = array();
+
+    /**
+     * Initializes context.
+     * Every scenario gets it's own context object.
+     */
+    public function __construct(array $parameters)
+    {
+        // Initialize your context here
+
+        $this-&gt;_restObject  = new stdClass();
+        $this-&gt;_client      = new Guzzle\Service\Client();
+        $this-&gt;_parameters = $parameters;
+    }
+
+    public function getParameter($name)
+    {
+        if (count($this-&gt;_parameters) === 0) {
+
+
+            throw new \Exception('Parameters not loaded!');
+        } else {
+
+            $parameters = $this-&gt;_parameters;
+            return (isset($parameters[$name])) ? $parameters[$name] : null;
+        }
+    }
+
+     /**
+     * @Given /^that I want to make a new "([^"]*)"$/
+     */
+    public function thatIWantToMakeANew($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'post';
+    }
+
+     /**
+     * @Given /^that I want to find a "([^"]*)"$/
+     */
+    public function thatIWantToFindA($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'get';
+    }
+
+    /**
+     * @Given /^that I want to delete a "([^"]*)"$/
+     */
+    public function thatIWantToDeleteA($objectType)
+    {
+        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
+        $this-&gt;_restObjectMethod = 'delete';
+    }
+
+    /**
+     * @Given /^that its "([^"]*)" is "([^"]*)"$/
+     */
+    public function thatTheItsIs($propertyName, $propertyValue)
+    {
+        $this-&gt;_restObject-&gt;$propertyName = $propertyValue;
+    }
+
+    /**
+     * @When /^I request "([^"]*)"$/
+     */
+    public function iRequest($pageUrl)
+    {
+        $baseUrl            = $this-&gt;getParameter('base_url');
+        $this-&gt;_requestUrl  = $baseUrl.$pageUrl;
+
+        switch (strtoupper($this-&gt;_restObjectMethod)) {
+            case 'GET':
+                $response = $this-&gt;_client
+                    -&gt;get($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
+                    -&gt;send();
+                break;
+            case 'POST':
+                $postFields = (array)$this-&gt;_restObject;
+                $response = $this-&gt;_client
+                    -&gt;post($this-&gt;_requestUrl,null,$postFields)
+                    -&gt;send();
+                break;
+            case 'DELETE':
+                $response = $this-&gt;_client
+                    -&gt;delete($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
+                    -&gt;send();
+                break;
+        }
+        $this-&gt;_response = $response;
+    }
+
+    /**
+     * @Then /^the response is JSON$/
+     */
+    public function theResponseIsJson()
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (empty($data)) {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response);
+        }
+    }
+
+    /**
+     * @Given /^the response has a "([^"]*)" property$/
+     */
+    public function theResponseHasAProperty($propertyName)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Then /^the "([^"]*)" property equals "([^"]*)"$/
+     */
+    public function thePropertyEquals($propertyName, $propertyValue)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+            if ($data-&gt;$propertyName !== $propertyValue) {
+                throw new \Exception('Property value mismatch! (given: '.$propertyValue.', match: '.$data-&gt;$propertyName.')');
+            }
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Given /^the type of the "([^"]*)" property is ([^"]*)$/
+     */
+    public function theTypeOfThePropertyIsNumeric($propertyName,$typeString)
+    {
+        $data = json_decode($this-&gt;_response-&gt;getBody(true));
+
+        if (!empty($data)) {
+            if (!isset($data-&gt;$propertyName)) {
+                throw new Exception("Property '".$propertyName."' is not set!\n");
+            }
+            // check our type
+            switch (strtolower($typeString)) {
+                case 'numeric':
+                    if (!is_numeric($data-&gt;$propertyName)) {
+                        throw new Exception("Property '".$propertyName."' is not of the correct type: ".$theTypeOfThePropertyIsNumeric."!\n");
+                    }
+                    break;
+            }
+
+        } else {
+            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
+        }
+    }
+
+    /**
+     * @Then /^the response status code should be (\d+)$/
+     */
+    public function theResponseStatusCodeShouldBe($httpStatus)
+    {
+        if ((string)$this-&gt;_response-&gt;getStatusCode() !== $httpStatus) {
+            throw new \Exception('HTTP code does not match '.$httpStatus.
+                ' (actual: '.$this-&gt;_response-&gt;getStatusCode().')');
+        }
+    }
+
+     /**
+     * @Then /^echo last response$/
+     */
+    public function echoLastResponse()
+    {
+        $this-&gt;printDebug(
+            $this-&gt;_requestUrl."\n\n".
+            $this-&gt;_response
+        );
+    }
+}
+</code></pre>
+
+<p>So that was a bit of code. I&#8217;ll sort of explain it in a moment after we get it working. In
+order for these steps to work we need to add <strong>RestContext</strong> as a sub context to <strong>FeatureContext</strong>.
+Let&#8217;s do that.</p>
+
+<pre><code>// features/bootstrap/FeatureContext.php
+&lt;?php
+
+use Behat\Behat\Context\ClosuredContextInterface,
+    Behat\Behat\Context\TranslatedContextInterface,
+    Behat\Behat\Context\BehatContext,
+    Behat\Behat\Exception\PendingException;
+use Behat\Gherkin\Node\PyStringNode,
+    Behat\Gherkin\Node\TableNode;
+
+//
+// Require 3rd-party libraries here:
+//
+//   require_once 'PHPUnit/Autoload.php';
+//   require_once 'PHPUnit/Framework/Assert/Functions.php';
+//
+require_once 'RestContext.php';
+
+/**
+ * Features context.
+ */
+class FeatureContext extends BehatContext
+{
+    /**
+     * Initializes context.
+     * Every scenario gets it's own context object.
+     *
+     * @param   array   $parameters     context parameters (set them up through behat.yml)
+     */
+    public function __construct(array $parameters)
+    {
+        // Initialize your context here
+        $this-&gt;useContext('RestContext', new RestContext($parameters));
+    }
+}
+</code></pre>
+
+<p>So what we did is require our RestContext.php file and instantiate it in
+<em>$this->useContext(&#8216;RestContext&#8217;, new RestContext($parameters));</em>. Now when you type
+<strong>bin/behat -dl</strong> you should see a list commands that look like&#8230;</p>
+
+<pre><code># output from cli
+Given /^that I want to make a new "([^"]*)"$/
+Given /^that I want to find a "([^"]*)"$/
+Given /^that I want to delete a "([^"]*)"$/
+Given /^that its "([^"]*)" is "([^"]*)"$/
+When /^I request "([^"]*)"$/
+Then /^the response is JSON$/
+Given /^the response has a "([^"]*)" property$/
+Then /^the "([^"]*)" property equals "([^"]*)"$/
+Given /^the type of the "([^"]*)" property is ([^"]*)$/
+Then /^the response status code should be (\d+)$/
+Then /^echo last response$/
+</code></pre>
+
+<p>All of these steps are coming from our RestContext class.</p>
+
+<h3>Adding behat.yml</h3>
+
+<p>We need a config file for behat specifying where our api is. Create the file <strong>behat.yml</strong>
+at the top dir of your project.</p>
+
+<pre><code># behat.yml
+default:
+    context:
+        parameters:
+            base_url: http://foo.local
+</code></pre>
+
+<p>The property <strong>base_url</strong> is where we specified the location of our api.</p>
+
+<h3>Writing our features</h3>
+
+<p>Now that all the ground work is in place, let&#8217;s write a few features for testing. Go ahead
+and create a file <strong>features/user.feature</strong> and add the following to it.</p>
+
+<pre><code># features/user.feature
+Feature: Testing the RESTfulness of the Index controller
+Let's see how RESTish this is
+
+Scenario: Creating a new User
+    Given that I want to make a new "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the response is JSON
+    And the response has a "userId" property
+    And the type of the "userId" property is numeric
+    Then the response status code should be 200
+
+Scenario: Finding a User
+    Given that I want to find a "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the "name" property equals "Chris"
+
+Scenario: Deleting a User
+    Given that I want to delete a "User"
+    And that its "name" is "Chris"
+    When I request "/user"
+    Then the "status" property equals "true"
+</code></pre>
+
+<p>Now that we have our feature let&#8217;s run it with <strong>bin/behat features/user.feature</strong>. You should
+get errors with a large amount of html spit back out at you. This is because Laravel
+does not have a route/api for what is being tested. We will create that in the next step.</p>
+
+<h3>Creating our API</h3>
+
+<p>Our API is for demonstration purposes only, so I&#8217;m going to go ahead and provide a quick
+stub API that will pass our expectations. Enter the following code into <strong>application/routes.php</strong>.</p>
+
+<pre><code>// in application/routes.php
+Route::post('user', function()
+{
+    $data = array('userId' =&gt; 1);
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+
+Route::get('user', function()
+{
+    $data = array('name' =&gt; 'Chris');
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+
+Route::delete('user', function()
+{
+    $data = array('status' =&gt; "true");
+    return Response::make(json_encode($data), 200,
+        array('Content-Type' =&gt; 'application/json'));
+});
+</code></pre>
+
+<p>Go ahead and run <strong>bin/behat features/user.feature</strong> and you should get all green with a
+message like so&#8230;</p>
+
+<pre><code>Feature: Testing the RESTfulness of the Index controller
+Let's see how RESTish this is
+
+  Scenario: Creating a new User                      # features/user.feature:4
+    Given that I want to make a new "User"           # RestContext::thatIWantToMakeANew()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the response is JSON                        # RestContext::theResponseIsJson()
+    And the response has a "userId" property         # RestContext::theResponseHasAProperty()
+    And the type of the "userId" property is numeric # RestContext::theTypeOfThePropertyIsNumeric()
+    Then the response status code should be 200      # RestContext::theResponseStatusCodeShouldBe()
+
+  Scenario: Finding a User                           # features/user.feature:13
+    Given that I want to find a "User"               # RestContext::thatIWantToFindA()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the "name" property equals "Chris"          # RestContext::thePropertyEquals()
+
+  Scenario: Deleting a User                          # features/user.feature:19
+    Given that I want to delete a "User"             # RestContext::thatIWantToDeleteA()
+    And that its "name" is "Chris"                   # RestContext::thatTheItsIs()
+    When I request "/user"                           # RestContext::iRequest()
+    Then the "status" property equals "true"         # RestContext::thePropertyEquals()
+
+3 scenarios (3 passed)
+15 steps (15 passed)
+0m0.131s
+</code></pre>
+
+<h3>Closing notes</h3>
+
+<p>Now that we have a REST API in place and a Rest Context for behat you should be able to
+see how we could test any REST API. If you need more steps to use when testing your REST
+APIs just add them to the RestContext class and they will then be available to use in your
+Gherkin features.</p>
+
+<h3>Credits</h3>
+
+<p>This article was heavily inspired by
+<a href="http://blog.phpdeveloper.org/?p=456">behat + fuelphp = restful testing happiness</a> written
+by Chris Cornutt. The RestContext class is just a refactor of his FeatureContextRest class
+to allow using it as a sub context which I feel makes it more natural to use and easier to
+reuse in projects. I also wanted to make a point that principals apply to any REST API and
+not just one built with FuelPHP.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Keith Loy</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-05-02T08:17:00-05:00" pubdate data-updated="true">May 2<span>nd</span>, 2012</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://kloy.github.com/blog/2012/05/02/testing-rest-api-with-behat/" data-via="guynamedkeith" data-counturl="http://kloy.github.com/blog/2012/05/02/testing-rest-api-with-behat/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="small"></div>
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2012/04/11/yaml-config-files-in-laravel/" title="Previous Post: Yaml config files in Laravel">&laquo; Yaml config files in Laravel</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2012/05/02/testing-rest-api-with-behat/">Testing REST API with Behat</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/11/yaml-config-files-in-laravel/">Yaml config files in Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/laravel-as-a-git-submodule/">Laravel as a git submodule</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2012/04/10/composer-with-laravel/">Composer with Laravel</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2011/02/12/testing-suite-for-jruby-on-rails-with-rspec/">Testing Suite for jRuby on Rails with RSpec</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/kloy">@kloy</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'kloy',
+            count: 4,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+<section>
+  <h1>Latest Tweets</h1>
+  <ul id="tweets">
+    <li class="loading">Status updating...</li>
+  </ul>
+  <script type="text/javascript">
+    $.domReady(function(){
+      getTwitterFeed("guynamedkeith", 4, false);
+    });
+  </script>
+  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
+  
+    <a href="http://twitter.com/guynamedkeith" class="twitter-follow-button" data-show-count="false">Follow @guynamedkeith</a>
+  
+</section>
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/ckeithloy@gmail.com?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Keith Loy -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: PHP | Keith Loy]]></title>
+  <link href="http://kloy.github.com/blog/categories/php/atom.xml" rel="self"/>
+  <link href="http://kloy.github.com/"/>
+  <updated>2012-10-05T08:42:05-05:00</updated>
+  <id>http://kloy.github.com/</id>
+  <author>
+    <name><![CDATA[Keith Loy]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Yaml config files in Laravel]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel/"/>
+    <updated>2012-04-11T08:14:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/11/yaml-config-files-in-laravel</id>
+    <content type="html"><![CDATA[<p>One of the new features in laravel 3.1 is being able to listen for the the Config::loader event
+allowing for more control over how config files are loaded. With a little bit of work we'll
+be able to utilize this "hook" to load config files written in yaml as well as php.</p>
+
+<!--more-->
+
+
+<h3>Getting a yaml parser</h3>
+
+<p>Before we can use yaml files as configs, we need a way to parse yaml in php. The best
+and easiest yaml parser I know of for PHP is symfony's. We can install symfony's yaml
+component using composer. If you don't already have composer integrated into your laravel
+app go ahead and checkout my article on
+<a href="http://www.keithloy.me/2012/04/composer-with-laravel/">Composer with laravel</a>.</p>
+
+<p>Now that you have composer integrated make sure your <strong>composer.json</strong> file looks like so...</p>
+
+<p>  # /path/to/my/project/composer.json
+  {</p>
+
+<pre><code>  "require": {
+      "php": "&gt;=5.3.0",
+      "symfony/yaml": "2.0.*"
+  }
+</code></pre>
+
+<p>  }</p>
+
+<p>And run a composer install if you have not already run composer install, else run composer
+update.</p>
+
+<p>  cd /path/to/my/project
+  php composer.phar install # only if not already installed
+  php composer.phar update</p>
+
+<p>You should now have the symfony yaml component.</p>
+
+<h3>Register the yaml parser</h3>
+
+<p>Before we can use the parser, we need to register the parser in our IoC container.
+We will do that now by adding the following code to the bottom of <strong>start.php</strong>.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  IoC::singleton('yaml_parser', function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Parser();
+</code></pre>
+
+<p>  });</p>
+
+<p>  IoC::singleton('yaml_dumper', function()
+  {</p>
+
+<pre><code>  return new \Symfony\Component\Yaml\Dumper();
+</code></pre>
+
+<p>  });</p>
+
+<p>What we just did was register the symfony yaml Dumper and Parser objects as singletons
+in our IoC container. We can now get an instance of the yaml parser at any time by calling:</p>
+
+<p>  $parser = IoC::resolve('yaml_parser');</p>
+
+<h3>Listening to the load event</h3>
+
+<p>Time to hook into that load event mentioned in the intro. We will need to change the
+default <strong>Config::loader</strong> event in <strong>/path/to/project/application/start.php</strong> to use
+our <strong>Config::file()</strong> function instead of the default <strong>Laravel\Config::file()</strong>
+function. We could technically implement an entirely new file loading process for config
+files here, but we only wish to extend the default functionality to meet our needs.
+And... Here's the code.</p>
+
+<p>  # in /path/to/my/project/application/start.php
+  /<em>
+  |--------------------------------------------------------------------------
+  | Laravel Configuration Loader
+  |--------------------------------------------------------------------------
+  |
+  | The Laravel configuration loader is responsible for returning an array
+  | of configuration options for a given bundle and file. By default, we
+  | use the files provided with Laravel; however, you are free to use
+  | your own storage mechanism for configuration arrays.
+  |
+  </em>/</p>
+
+<p>  Laravel\Event::listen(Laravel\Config::loader, function($bundle, $file)
+  {</p>
+
+<pre><code>require_once path('app').'libraries'.DS.'myconfig.php';
+return MyConfig::file($bundle, $file);
+// return Laravel\Config::file($bundle, $file);
+</code></pre>
+
+<p>  });</p>
+
+<p>The require_once might have you scratching your head a bit if you are use to using
+Laravel's autoloader. This is a work around as the autoloaders don't get initialized
+until later in the start process and if we registered an autoloader for our myconfig.php
+file it would actually get registered twice since the libraries dir get's registered as
+well.</p>
+
+<h3>MyConfig::file()</h3>
+
+<p>This is where we extend, or technically override, the default <strong>Laravel\Config::file()</strong>
+function. On the with code!</p>
+
+<p>  # in /path/to/my/project/application/libraries/myconfig.php
+  &lt;?php</p>
+
+<p>  class MyConfig extends Laravel\Config
+  {</p>
+
+<pre><code>/**
+ * Load the configuration items from a configuration file.
+ *
+ * @param  string  $bundle
+ * @param  string  $file
+ * @return array
+ */
+public static function file($bundle, $file)
+{
+  $config = array();
+
+  // Configuration files cascade. Typically, the bundle configuration array is
+  // loaded first, followed by the environment array, providing the convenient
+  // cascading of configuration options across environments.
+  foreach (static::paths($bundle) as $directory)
+  {
+    $semi_path = $directory.$file;
+    if ($directory !== '')
+    {
+      // Typical php configs are most common, so check first.
+      if (file_exists($path = $semi_path.EXT))
+      {
+        $config = array_merge($config, require $path);
+      }
+      // Let's get a yaml config
+      else if (file_exists($path = "$semi_path.yml"))
+      {
+        $parser = IoC::resolve('yaml_parser');
+        $contents = file_get_contents($path);
+        $config = array_merge($config, $parser-&gt;parse($contents));
+      }
+    }
+  }
+
+  return $config;
+}
+</code></pre>
+
+<p>  }</p>
+
+<h3>Final notes</h3>
+
+<p>We can now use yaml files as config files. Nothing special is needed when calling Config::get(),
+just use it as normal. For the astute programmer, you may notice that you can easily
+add more config parsers in the if, if else block.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Laravel as a git submodule]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/10/laravel-as-a-git-submodule/"/>
+    <updated>2012-04-10T08:05:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/10/laravel-as-a-git-submodule</id>
+    <content type="html"><![CDATA[<p>Laravel is a very active framework with minor patches every few days it seems. It is nice
+to be able to easily integrate these patches, as they usually contain bug fixes, into our
+applications easily. I'll present the method I use for achieving this which utilizes
+<a href="http://book.git-scm.com/5_submodules.html">git submodules</a>.</p>
+
+<!--more-->
+
+
+<h3>Get laravel</h3>
+
+<p>First let's go ahead and download <a href="http://laravel.com/download">laravel</a>. I'm assuming
+you know how to install the default laravel app on your own server.</p>
+
+<h3>Remove the framework</h3>
+
+<p>Now that we have laravel we are going to do something that seems kind of awkward, delete
+the framework. We are doing this as we will be including the framework as a git
+submodule shortly.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ rm -rf laravel
+</code></pre>
+
+<p>You can of course just use your file browser as well :-D</p>
+
+<h3>Setting up git</h3>
+
+<p>I'll assume this is a brand new project where we need to go ahead and setup a git repo.
+Let's do that.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ git init
+</code></pre>
+
+<p>Ok, we have our git repo, now let's include laravel as a git submodule.</p>
+
+<pre><code>$ cd /path/to/my/app
+$ git submodule add https://github.com/laravel/laravel
+</code></pre>
+
+<p>You should now have a laravel dir in your app. The framework is actually nested in
+<strong>laravel/laravel</strong>.</p>
+
+<h3>Correcting the sys path</h3>
+
+<p>Currently <strong>path('sys')</strong> expects laravel to be in <strong>/path/to/my/app/laravel</strong> but ours
+is in <strong>/path/to/my/app/laravel/laravel</strong>. Let's fix that. Open <strong>/path/to/my/app/paths.php</strong>
+and modify it too look like so.</p>
+
+<pre><code>// /path/to/my/app/paths.php
+// --------------------------------------------------------------
+// The path to the Laravel directory.
+// --------------------------------------------------------------
+$paths['sys'] = 'laravel/laravel';
+</code></pre>
+
+<p>Laravel is now included in your app as a git submodule and will work as any other git
+submodule would! I personally fork laravel and use my forked repo instead of using laravel's
+repo to allow for easily contributing back to laravel via pull requests on github. I'd
+advocate this method if you are familiar with forking.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Composer with Laravel]]></title>
+    <link href="http://kloy.github.com/blog/2012/04/10/composer-with-laravel/"/>
+    <updated>2012-04-10T05:23:00-05:00</updated>
+    <id>http://kloy.github.com/blog/2012/04/10/composer-with-laravel</id>
+    <content type="html"><![CDATA[<p>Something I needed in my projects was the ability to seemlessly use
+<a href="http://getcomposer.org/">composer</a> to manage some of my packages as well as third party
+ones such as the symfony components. With a little digging and a bit of work, I achieved
+this goal. In this article I'll walk you through the process.</p>
+
+<!--more-->
+
+
+<h3>Let's do this</h3>
+
+<p>Firstly, lets install composer.</p>
+
+<pre><code># navigate to your project
+$ cd /path/to/my/project
+# install composer
+$ curl -s http://getcomposer.org/installer | php
+</code></pre>
+
+<p>Now create a <strong>composer.json</strong> file in the top path of your project. Here is my
+<strong>composer.json</strong> file for reference.</p>
+
+<pre><code># in /path/to/my/project/composer.json
+{
+    "require": {
+        "php": "&gt;=5.3.0",
+        "kloy/cli": "0.0.*",
+        "vendor/package": "version",
+        ...
+    }
+}
+</code></pre>
+
+<p>Since we have a <strong>composer.json</strong> file, we can now install our composer packages.</p>
+
+<pre><code># Install composer packages
+$ php composer.phar install
+</code></pre>
+
+<p>All your packages should now be installed in <strong>/path/to/my/project/vendors</strong>. We need to
+setup laravel to use the composer autoloader now.</p>
+
+<p>Modify your <strong>paths.php</strong> file to have a path for where composer installs it's packages.</p>
+
+<pre><code># in /path/to/my/project/paths.php
+// --------------------------------------------------------------
+// The path to the composer vendors directory.
+// --------------------------------------------------------------
+$paths['composer'] = 'vendor';
+</code></pre>
+
+<p>Last thing to do is make sure <strong>index.php</strong> is requiring the composer packages using the
+composer autoloader. Add the following code to the <strong>index.php</strong> script.</p>
+
+<pre><code># in /path/to/my/project/public/index.php
+// --------------------------------------------------------------
+// Set the core Laravel path constants.
+// --------------------------------------------------------------
+require '../paths.php';
+
+// --------------------------------------------------------------
+// Autoload composer vendors.
+// --------------------------------------------------------------
+require path('composer').DS.'.composer'.DS.'autoload.php';
+</code></pre>
+
+<p>If you want the composer autoloader to work in artisan as well, just add the same require
+from above to the artisan script. You could put the require statement for composer's
+autolaoder in start.php, but this would need to be done for all bundles as well.</p>
+
+<p>Congratualtions! You will now be able to use your composer packages in your application
+and bundles.</p>
+]]></content>
+  </entry>
+  
+</feed>
