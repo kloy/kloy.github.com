@@ -24,15 +24,15 @@ body > nav {
 	border: #E5E5E5 1px solid;
 
 	a {
-		color: #9C0001;
+		color: $link-color;
 	}
 
 	a:visited {
-		color: #9C0001;
+		color: $link-color;
 	}
 
 	a:hover {
-		color: lighten(#9C0001, 10);
+		color: $link-color-hover;
 	}
 }
 
@@ -58,7 +58,7 @@ body .blog-index article {
 }
 
 #content .blog-index a[rel="full-article"]:hover {
-	background: #9C0001;
+	background: $link-color;
 }
 
 body .credit {
@@ -66,27 +66,27 @@ body .credit {
 }
 
 a {
-	color: #9C0001;
+	color: $link-color;
 }
 
 a:hover {
-	color: lighten(#9C0001, 10);
+	color: $link-color-hover;
 }
 
 #blog-archives h1 a:hover {
-	color: lighten(#9C0001, 10);
+	color: $link-color-hover;
 }
 
 #blog-archives a.category:hover {
-	color: lighten(#9C0001, 10);
+	color: $link-color-hover;
 }
 
 aside.sidebar:hover a {
-	color: #9C0001;
+	color: $link-color;
 }
 
 aside.sidebar a:hover {
-	color: lighten(#9C0001, 10) !important;
+	color: $link-color-hover !important;
 }
 
 pre {
@@ -101,4 +101,8 @@ pre {
 
 .sidebar .post {
 	border: none;
+}
+
+.pagination a:hover {
+	color: $link-color-hover;
 }

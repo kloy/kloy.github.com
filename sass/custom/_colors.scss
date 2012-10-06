@@ -14,6 +14,8 @@ $sidebar-bg: #FFF;
 $footer-bg: $header-bg !default;
 $footer-bg-front: $header-bg;
 $footer-bg-back: $header-bg;
+$link-color: #9C0001;
+$link-color-hover: lighten($link-color, 10);
 
 
 /* To use the light Solarized highlighting theme uncomment the following line */
