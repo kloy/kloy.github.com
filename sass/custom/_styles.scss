@@ -73,6 +73,32 @@ a:hover {
 	color: lighten(#9C0001, 10);
 }
 
+#blog-archives h1 a:hover {
+	color: lighten(#9C0001, 10);
+}
+
+#blog-archives a.category:hover {
+	color: lighten(#9C0001, 10);
+}
+
+aside.sidebar:hover a {
+	color: #9C0001;
+}
+
+aside.sidebar a:hover {
+	color: lighten(#9C0001, 10) !important;
+}
+
 pre {
 	background: #FDF6E3;
+}
+
+#content article article,
+#content article header,
+#content article h2 {
+	background: none;
+}
+
+.sidebar .post {
+	border: none;
 }
