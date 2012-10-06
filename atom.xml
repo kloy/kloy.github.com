@@ -4,7 +4,7 @@
   <title><![CDATA[Keith Loy]]></title>
   <link href="http://kloy.github.com/atom.xml" rel="self"/>
   <link href="http://kloy.github.com/"/>
-  <updated>2012-10-05T08:47:47-05:00</updated>
+  <updated>2012-10-05T19:21:45-05:00</updated>
   <id>http://kloy.github.com/</id>
   <author>
     <name><![CDATA[Keith Loy]]></name>
@@ -54,17 +54,29 @@ curl -s http://getcomposer.org/installer | php
 dependencies. Go ahead and create <strong>composer.json</strong> at the top of our project and add the
 following to it.</p>
 
-<pre><code>// composer.json
-{
-    "require": {
-        "behat/behat": "2.3.*",
-        "guzzle/guzzle": "2.4.*"
-    },
-    "config": {
-        "bin-dir": "bin/"
-    }
-}
-</code></pre>
+<figure class='code'><figcaption><span>Composer.json (composer.json)</span> <a href='http://kloy.github.com/downloads/code/testing-rest-api-with-behat/composer.json'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="err">//</span> <span class="err">composer.json</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="nt">&quot;require&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;behat/behat&quot;</span><span class="p">:</span> <span class="s2">&quot;2.3.*&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;guzzle/guzzle&quot;</span><span class="p">:</span> <span class="s2">&quot;2.4.*&quot;</span>
+</span><span class='line'>  <span class="p">},</span>
+</span><span class='line'>  <span class="nt">&quot;config&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;bin-dir&quot;</span><span class="p">:</span> <span class="s2">&quot;bin/&quot;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
 
 <p>Now that we have our dependencies listed go ahead and install them.</p>
 
@@ -85,255 +97,494 @@ bin/behat --init
 <p>Create a file in <strong>features/bootstrap/</strong> called <strong>RestContext.php</strong>. Add the following to
 <strong>RestContext.php</strong>&#8230;</p>
 
-<pre><code>// features/bootstrap/RestContext.php
-&lt;?php
-use Behat\Behat\Context\BehatContext;
-use Symfony\Component\Yaml\Yaml;
+<figure class='code'><figcaption><span>features/bootstrap/RestContext.php (RestContext.php)</span> <a href='http://kloy.github.com/downloads/code/testing-rest-api-with-behat/RestContext.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+<span class='line-number'>160</span>
+<span class='line-number'>161</span>
+<span class='line-number'>162</span>
+<span class='line-number'>163</span>
+<span class='line-number'>164</span>
+<span class='line-number'>165</span>
+<span class='line-number'>166</span>
+<span class='line-number'>167</span>
+<span class='line-number'>168</span>
+<span class='line-number'>169</span>
+<span class='line-number'>170</span>
+<span class='line-number'>171</span>
+<span class='line-number'>172</span>
+<span class='line-number'>173</span>
+<span class='line-number'>174</span>
+<span class='line-number'>175</span>
+<span class='line-number'>176</span>
+<span class='line-number'>177</span>
+<span class='line-number'>178</span>
+<span class='line-number'>179</span>
+<span class='line-number'>180</span>
+<span class='line-number'>181</span>
+<span class='line-number'>182</span>
+<span class='line-number'>183</span>
+<span class='line-number'>184</span>
+<span class='line-number'>185</span>
+<span class='line-number'>186</span>
+<span class='line-number'>187</span>
+<span class='line-number'>188</span>
+<span class='line-number'>189</span>
+<span class='line-number'>190</span>
+<span class='line-number'>191</span>
+<span class='line-number'>192</span>
+<span class='line-number'>193</span>
+<span class='line-number'>194</span>
+<span class='line-number'>195</span>
+<span class='line-number'>196</span>
+<span class='line-number'>197</span>
+<span class='line-number'>198</span>
+<span class='line-number'>199</span>
+<span class='line-number'>200</span>
+<span class='line-number'>201</span>
+<span class='line-number'>202</span>
+<span class='line-number'>203</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'><span class="k">use</span> <span class="nx">Behat\Behat\Context\BehatContext</span><span class="p">;</span>
+</span><span class='line'><span class="k">use</span> <span class="nx">Symfony\Component\Yaml\Yaml</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">/**</span>
+</span><span class='line'><span class="sd"> * Rest context.</span>
+</span><span class='line'><span class="sd"> */</span>
+</span><span class='line'><span class="k">class</span> <span class="nc">RestContext</span> <span class="k">extends</span> <span class="nx">BehatContext</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_restObject</span>        <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_restObjectType</span>    <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_restObjectMethod</span>  <span class="o">=</span> <span class="s1">&#39;get&#39;</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_client</span>            <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_response</span>          <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_requestUrl</span>        <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">private</span> <span class="nv">$_parameters</span>           <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * Initializes context.</span>
+</span><span class='line'><span class="sd">     * Every scenario gets it&#39;s own context object.</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">__construct</span><span class="p">(</span><span class="k">array</span> <span class="nv">$parameters</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// Initialize your context here</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObject</span>  <span class="o">=</span> <span class="k">new</span> <span class="k">stdClass</span><span class="p">();</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_client</span>      <span class="o">=</span> <span class="k">new</span> <span class="nx">Guzzle\Service\Client</span><span class="p">();</span>
+</span><span class='line'>      <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_parameters</span> <span class="o">=</span> <span class="nv">$parameters</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getParameter</span><span class="p">(</span><span class="nv">$name</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="nb">count</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_parameters</span><span class="p">)</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nx">\Exception</span><span class="p">(</span><span class="s1">&#39;Parameters not loaded!&#39;</span><span class="p">);</span>
+</span><span class='line'>      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="nv">$parameters</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_parameters</span><span class="p">;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">[</span><span class="nv">$name</span><span class="p">]))</span> <span class="o">?</span> <span class="nv">$parameters</span><span class="p">[</span><span class="nv">$name</span><span class="p">]</span> <span class="o">:</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>     <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^that I want to make a new &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">thatIWantToMakeANew</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectType</span>   <span class="o">=</span> <span class="nx">ucwords</span><span class="p">(</span><span class="nx">strtolower</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">));</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectMethod</span> <span class="o">=</span> <span class="s1">&#39;post&#39;</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>     <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^that I want to find a &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">thatIWantToFindA</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectType</span>   <span class="o">=</span> <span class="nx">ucwords</span><span class="p">(</span><span class="nx">strtolower</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">));</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectMethod</span> <span class="o">=</span> <span class="s1">&#39;get&#39;</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^that I want to delete a &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">thatIWantToDeleteA</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectType</span>   <span class="o">=</span> <span class="nx">ucwords</span><span class="p">(</span><span class="nx">strtolower</span><span class="p">(</span><span class="nv">$objectType</span><span class="p">));</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectMethod</span> <span class="o">=</span> <span class="s1">&#39;delete&#39;</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^that its &quot;([^&quot;]*)&quot; is &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">thatTheItsIs</span><span class="p">(</span><span class="nv">$propertyName</span><span class="p">,</span> <span class="nv">$propertyValue</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObject</span><span class="o">-&gt;</span><span class="nv">$propertyName</span> <span class="o">=</span> <span class="nv">$propertyValue</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @When /^I request &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">iRequest</span><span class="p">(</span><span class="nv">$pageUrl</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$baseUrl</span>          <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">getParameter</span><span class="p">(</span><span class="s1">&#39;base_url&#39;</span><span class="p">);</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_requestUrl</span>  <span class="o">=</span> <span class="nv">$baseUrl</span><span class="o">.</span><span class="nv">$pageUrl</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">switch</span> <span class="p">(</span><span class="nx">strtoupper</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObjectMethod</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">case</span> <span class="s1">&#39;GET&#39;</span><span class="o">:</span>
+</span><span class='line'>                <span class="nv">$response</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_client</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_requestUrl</span><span class="o">.</span><span class="s1">&#39;?&#39;</span><span class="o">.</span><span class="nb">http_build_str</span><span class="p">((</span><span class="k">array</span><span class="p">)</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObject</span><span class="p">))</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">send</span><span class="p">();</span>
+</span><span class='line'>                <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>            <span class="k">case</span> <span class="s1">&#39;POST&#39;</span><span class="o">:</span>
+</span><span class='line'>                <span class="nv">$postFields</span> <span class="o">=</span> <span class="p">(</span><span class="k">array</span><span class="p">)</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObject</span><span class="p">;</span>
+</span><span class='line'>                <span class="nv">$response</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_client</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">post</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_requestUrl</span><span class="p">,</span><span class="k">null</span><span class="p">,</span><span class="nv">$postFields</span><span class="p">)</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">send</span><span class="p">();</span>
+</span><span class='line'>                <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>            <span class="k">case</span> <span class="s1">&#39;DELETE&#39;</span><span class="o">:</span>
+</span><span class='line'>              <span class="nv">$response</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_client</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">delete</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_requestUrl</span><span class="o">.</span><span class="s1">&#39;?&#39;</span><span class="o">.</span><span class="nb">http_build_str</span><span class="p">((</span><span class="k">array</span><span class="p">)</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_restObject</span><span class="p">))</span>
+</span><span class='line'>                    <span class="o">-&gt;</span><span class="na">send</span><span class="p">();</span>
+</span><span class='line'>              <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span> <span class="o">=</span> <span class="nv">$response</span><span class="p">;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Then /^the response is JSON$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">theResponseIsJson</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$data</span> <span class="o">=</span> <span class="nb">json_decode</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="k">empty</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Response was not JSON</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">.</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^the response has a &quot;([^&quot;]*)&quot; property$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">theResponseHasAProperty</span><span class="p">(</span><span class="nv">$propertyName</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$data</span> <span class="o">=</span> <span class="nb">json_decode</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">empty</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>                <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Property &#39;&quot;</span><span class="o">.</span><span class="nv">$propertyName</span><span class="o">.</span><span class="s2">&quot;&#39; is not set!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Response was not JSON</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">.</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Then /^the &quot;([^&quot;]*)&quot; property equals &quot;([^&quot;]*)&quot;$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">thePropertyEquals</span><span class="p">(</span><span class="nv">$propertyName</span><span class="p">,</span> <span class="nv">$propertyValue</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$data</span> <span class="o">=</span> <span class="nb">json_decode</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">empty</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>          <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>                <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Property &#39;&quot;</span><span class="o">.</span><span class="nv">$propertyName</span><span class="o">.</span><span class="s2">&quot;&#39; is not set!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="k">if</span> <span class="p">(</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span> <span class="o">!==</span> <span class="nv">$propertyValue</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>              <span class="k">throw</span> <span class="k">new</span> <span class="nx">\Exception</span><span class="p">(</span><span class="s1">&#39;Property value mismatch! (given: &#39;</span><span class="o">.</span><span class="nv">$propertyValue</span><span class="o">.</span><span class="s1">&#39;, match: &#39;</span><span class="o">.</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span><span class="o">.</span><span class="s1">&#39;)&#39;</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Response was not JSON</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">.</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Given /^the type of the &quot;([^&quot;]*)&quot; property is ([^&quot;]*)$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">theTypeOfThePropertyIsNumeric</span><span class="p">(</span><span class="nv">$propertyName</span><span class="p">,</span><span class="nv">$typeString</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$data</span> <span class="o">=</span> <span class="nb">json_decode</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">empty</span><span class="p">(</span><span class="nv">$data</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>                <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Property &#39;&quot;</span><span class="o">.</span><span class="nv">$propertyName</span><span class="o">.</span><span class="s2">&quot;&#39; is not set!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="c1">// check our type</span>
+</span><span class='line'>            <span class="k">switch</span> <span class="p">(</span><span class="nx">strtolower</span><span class="p">(</span><span class="nv">$typeString</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>                <span class="k">case</span> <span class="s1">&#39;numeric&#39;</span><span class="o">:</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nb">is_numeric</span><span class="p">(</span><span class="nv">$data</span><span class="o">-&gt;</span><span class="nv">$propertyName</span><span class="p">))</span> <span class="p">{</span>
+</span><span class='line'>                        <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Property &#39;&quot;</span><span class="o">.</span><span class="nv">$propertyName</span><span class="o">.</span><span class="s2">&quot;&#39; is not of the correct type: &quot;</span><span class="o">.</span><span class="nv">$theTypeOfThePropertyIsNumeric</span><span class="o">.</span><span class="s2">&quot;!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
+</span><span class='line'>                    <span class="p">}</span>
+</span><span class='line'>                    <span class="k">break</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nx">Exception</span><span class="p">(</span><span class="s2">&quot;Response was not JSON</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">.</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getBody</span><span class="p">(</span><span class="k">true</span><span class="p">));</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Then /^the response status code should be (\d+)$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">theResponseStatusCodeShouldBe</span><span class="p">(</span><span class="nv">$httpStatus</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">((</span><span class="nx">string</span><span class="p">)</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getStatusCode</span><span class="p">()</span> <span class="o">!==</span> <span class="nv">$httpStatus</span><span class="p">)</span> <span class="p">{</span>
+</span><span class='line'>          <span class="k">throw</span> <span class="k">new</span> <span class="nx">\Exception</span><span class="p">(</span><span class="s1">&#39;HTTP code does not match &#39;</span><span class="o">.</span><span class="nv">$httpStatus</span><span class="o">.</span>
+</span><span class='line'>              <span class="s1">&#39; (actual: &#39;</span><span class="o">.</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span><span class="o">-&gt;</span><span class="na">getStatusCode</span><span class="p">()</span><span class="o">.</span><span class="s1">&#39;)&#39;</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>     <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * @Then /^echo last response$/</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">echoLastResponse</span><span class="p">()</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">printDebug</span><span class="p">(</span>
+</span><span class='line'>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_requestUrl</span><span class="o">.</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span>
+</span><span class='line'>            <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">_response</span>
+</span><span class='line'>        <span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
 
-/**
- * Rest context.
- */
-class RestContext extends BehatContext
-{
-
-    private $_restObject        = null;
-    private $_restObjectType    = null;
-    private $_restObjectMethod  = 'get';
-    private $_client            = null;
-    private $_response          = null;
-    private $_requestUrl        = null;
-
-    private $_parameters            = array();
-
-    /**
-     * Initializes context.
-     * Every scenario gets it's own context object.
-     */
-    public function __construct(array $parameters)
-    {
-        // Initialize your context here
-
-        $this-&gt;_restObject  = new stdClass();
-        $this-&gt;_client      = new Guzzle\Service\Client();
-        $this-&gt;_parameters = $parameters;
-    }
-
-    public function getParameter($name)
-    {
-        if (count($this-&gt;_parameters) === 0) {
-
-
-            throw new \Exception('Parameters not loaded!');
-        } else {
-
-            $parameters = $this-&gt;_parameters;
-            return (isset($parameters[$name])) ? $parameters[$name] : null;
-        }
-    }
-
-     /**
-     * @Given /^that I want to make a new "([^"]*)"$/
-     */
-    public function thatIWantToMakeANew($objectType)
-    {
-        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
-        $this-&gt;_restObjectMethod = 'post';
-    }
-
-     /**
-     * @Given /^that I want to find a "([^"]*)"$/
-     */
-    public function thatIWantToFindA($objectType)
-    {
-        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
-        $this-&gt;_restObjectMethod = 'get';
-    }
-
-    /**
-     * @Given /^that I want to delete a "([^"]*)"$/
-     */
-    public function thatIWantToDeleteA($objectType)
-    {
-        $this-&gt;_restObjectType   = ucwords(strtolower($objectType));
-        $this-&gt;_restObjectMethod = 'delete';
-    }
-
-    /**
-     * @Given /^that its "([^"]*)" is "([^"]*)"$/
-     */
-    public function thatTheItsIs($propertyName, $propertyValue)
-    {
-        $this-&gt;_restObject-&gt;$propertyName = $propertyValue;
-    }
-
-    /**
-     * @When /^I request "([^"]*)"$/
-     */
-    public function iRequest($pageUrl)
-    {
-        $baseUrl            = $this-&gt;getParameter('base_url');
-        $this-&gt;_requestUrl  = $baseUrl.$pageUrl;
-
-        switch (strtoupper($this-&gt;_restObjectMethod)) {
-            case 'GET':
-                $response = $this-&gt;_client
-                    -&gt;get($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
-                    -&gt;send();
-                break;
-            case 'POST':
-                $postFields = (array)$this-&gt;_restObject;
-                $response = $this-&gt;_client
-                    -&gt;post($this-&gt;_requestUrl,null,$postFields)
-                    -&gt;send();
-                break;
-            case 'DELETE':
-                $response = $this-&gt;_client
-                    -&gt;delete($this-&gt;_requestUrl.'?'.http_build_str((array)$this-&gt;_restObject))
-                    -&gt;send();
-                break;
-        }
-        $this-&gt;_response = $response;
-    }
-
-    /**
-     * @Then /^the response is JSON$/
-     */
-    public function theResponseIsJson()
-    {
-        $data = json_decode($this-&gt;_response-&gt;getBody(true));
-
-        if (empty($data)) {
-            throw new Exception("Response was not JSON\n" . $this-&gt;_response);
-        }
-    }
-
-    /**
-     * @Given /^the response has a "([^"]*)" property$/
-     */
-    public function theResponseHasAProperty($propertyName)
-    {
-        $data = json_decode($this-&gt;_response-&gt;getBody(true));
-
-        if (!empty($data)) {
-            if (!isset($data-&gt;$propertyName)) {
-                throw new Exception("Property '".$propertyName."' is not set!\n");
-            }
-        } else {
-            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
-        }
-    }
-
-    /**
-     * @Then /^the "([^"]*)" property equals "([^"]*)"$/
-     */
-    public function thePropertyEquals($propertyName, $propertyValue)
-    {
-        $data = json_decode($this-&gt;_response-&gt;getBody(true));
-
-        if (!empty($data)) {
-            if (!isset($data-&gt;$propertyName)) {
-                throw new Exception("Property '".$propertyName."' is not set!\n");
-            }
-            if ($data-&gt;$propertyName !== $propertyValue) {
-                throw new \Exception('Property value mismatch! (given: '.$propertyValue.', match: '.$data-&gt;$propertyName.')');
-            }
-        } else {
-            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
-        }
-    }
-
-    /**
-     * @Given /^the type of the "([^"]*)" property is ([^"]*)$/
-     */
-    public function theTypeOfThePropertyIsNumeric($propertyName,$typeString)
-    {
-        $data = json_decode($this-&gt;_response-&gt;getBody(true));
-
-        if (!empty($data)) {
-            if (!isset($data-&gt;$propertyName)) {
-                throw new Exception("Property '".$propertyName."' is not set!\n");
-            }
-            // check our type
-            switch (strtolower($typeString)) {
-                case 'numeric':
-                    if (!is_numeric($data-&gt;$propertyName)) {
-                        throw new Exception("Property '".$propertyName."' is not of the correct type: ".$theTypeOfThePropertyIsNumeric."!\n");
-                    }
-                    break;
-            }
-
-        } else {
-            throw new Exception("Response was not JSON\n" . $this-&gt;_response-&gt;getBody(true));
-        }
-    }
-
-    /**
-     * @Then /^the response status code should be (\d+)$/
-     */
-    public function theResponseStatusCodeShouldBe($httpStatus)
-    {
-        if ((string)$this-&gt;_response-&gt;getStatusCode() !== $httpStatus) {
-            throw new \Exception('HTTP code does not match '.$httpStatus.
-                ' (actual: '.$this-&gt;_response-&gt;getStatusCode().')');
-        }
-    }
-
-     /**
-     * @Then /^echo last response$/
-     */
-    public function echoLastResponse()
-    {
-        $this-&gt;printDebug(
-            $this-&gt;_requestUrl."\n\n".
-            $this-&gt;_response
-        );
-    }
-}
-</code></pre>
 
 <p>So that was a bit of code. I&#8217;ll sort of explain it in a moment after we get it working. In
 order for these steps to work we need to add <strong>RestContext</strong> as a sub context to <strong>FeatureContext</strong>.
 Let&#8217;s do that.</p>
 
-<pre><code>// features/bootstrap/FeatureContext.php
-&lt;?php
+<figure class='code'><figcaption><span>features/bootstrap/FeatureContext.php (FeatureContext.php)</span> <a href='http://kloy.github.com/downloads/code/testing-rest-api-with-behat/FeatureContext.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">use</span> <span class="nx">Behat\Behat\Context\ClosuredContextInterface</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">Behat\Behat\Context\TranslatedContextInterface</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">Behat\Behat\Context\BehatContext</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">Behat\Behat\Exception\PendingException</span><span class="p">;</span>
+</span><span class='line'><span class="k">use</span> <span class="nx">Behat\Gherkin\Node\PyStringNode</span><span class="p">,</span>
+</span><span class='line'>    <span class="nx">Behat\Gherkin\Node\TableNode</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="c1">// Require 3rd-party libraries here:</span>
+</span><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="c1">//   require_once &#39;PHPUnit/Autoload.php&#39;;</span>
+</span><span class='line'><span class="c1">//   require_once &#39;PHPUnit/Framework/Assert/Functions.php&#39;;</span>
+</span><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="k">require_once</span> <span class="s1">&#39;RestContext.php&#39;</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">/**</span>
+</span><span class='line'><span class="sd"> * Features context.</span>
+</span><span class='line'><span class="sd"> */</span>
+</span><span class='line'><span class="k">class</span> <span class="nc">FeatureContext</span> <span class="k">extends</span> <span class="nx">BehatContext</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="sd">/**</span>
+</span><span class='line'><span class="sd">     * Initializes context.</span>
+</span><span class='line'><span class="sd">     * Every scenario gets it&#39;s own context object.</span>
+</span><span class='line'><span class="sd">     *</span>
+</span><span class='line'><span class="sd">     * @param   array   $parameters     context parameters (set them up through behat.yml)</span>
+</span><span class='line'><span class="sd">     */</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">function</span> <span class="nf">__construct</span><span class="p">(</span><span class="k">array</span> <span class="nv">$parameters</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// Initialize your context here</span>
+</span><span class='line'>        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">useContext</span><span class="p">(</span><span class="s1">&#39;RestContext&#39;</span><span class="p">,</span> <span class="k">new</span> <span class="nx">RestContext</span><span class="p">(</span><span class="nv">$parameters</span><span class="p">));</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
 
-use Behat\Behat\Context\ClosuredContextInterface,
-    Behat\Behat\Context\TranslatedContextInterface,
-    Behat\Behat\Context\BehatContext,
-    Behat\Behat\Exception\PendingException;
-use Behat\Gherkin\Node\PyStringNode,
-    Behat\Gherkin\Node\TableNode;
-
-//
-// Require 3rd-party libraries here:
-//
-//   require_once 'PHPUnit/Autoload.php';
-//   require_once 'PHPUnit/Framework/Assert/Functions.php';
-//
-require_once 'RestContext.php';
-
-/**
- * Features context.
- */
-class FeatureContext extends BehatContext
-{
-    /**
-     * Initializes context.
-     * Every scenario gets it's own context object.
-     *
-     * @param   array   $parameters     context parameters (set them up through behat.yml)
-     */
-    public function __construct(array $parameters)
-    {
-        // Initialize your context here
-        $this-&gt;useContext('RestContext', new RestContext($parameters));
-    }
-}
-</code></pre>
 
 <p>So what we did is require our RestContext.php file and instantiate it in
-<em>$this->useContext(&#8216;RestContext&#8217;, new RestContext($parameters));</em>. Now when you type
+<code>$this-&gt;useContext('RestContext', new RestContext($parameters));</code>. Now when you type
 <strong>bin/behat -dl</strong> you should see a list commands that look like&#8230;</p>
 
 <pre><code># output from cli
@@ -357,12 +608,17 @@ Then /^echo last response$/
 <p>We need a config file for behat specifying where our api is. Create the file <strong>behat.yml</strong>
 at the top dir of your project.</p>
 
-<pre><code># behat.yml
-default:
-    context:
-        parameters:
-            base_url: http://foo.local
-</code></pre>
+<figure class='code'><figcaption><span>behat.yml  </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">default</span><span class="p-Indicator">:</span>
+</span><span class='line'>  <span class="l-Scalar-Plain">context</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="err">    </span><span class="l-Scalar-Plain">parameters</span><span class="p-Indicator">:</span>
+</span><span class='line'><span class="err">        </span><span class="l-Scalar-Plain">base_url</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">http://foo.local</span>
+</span></code></pre></td></tr></table></div></figure>
+
 
 <p>The property <strong>base_url</strong> is where we specified the location of our api.</p>
 
@@ -371,31 +627,57 @@ default:
 <p>Now that all the ground work is in place, let&#8217;s write a few features for testing. Go ahead
 and create a file <strong>features/user.feature</strong> and add the following to it.</p>
 
-<pre><code># features/user.feature
-Feature: Testing the RESTfulness of the Index controller
-Let's see how RESTish this is
+<figure class='code'><figcaption><span>features/user.feature (user.feature)</span> <a href='http://kloy.github.com/downloads/code/testing-rest-api-with-behat/user.feature'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="c1"># features/user.feature</span>
+</span><span class='line'><span class="err">    </span><span class="l-Scalar-Plain">Feature</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Testing the RESTfulness of the Index controller</span>
+</span><span class='line'>    <span class="l-Scalar-Plain">Let&#39;s see how RESTish this is</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="l-Scalar-Plain">Scenario</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Creating a new User</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Given that I want to make a new &quot;User&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">And that its &quot;name&quot; is &quot;Chris&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">When I request &quot;/user&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Then the response is JSON</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">And the response has a &quot;userId&quot; property</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">And the type of the &quot;userId&quot; property is numeric</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Then the response status code should be 200</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="l-Scalar-Plain">Scenario</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Finding a User</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Given that I want to find a &quot;User&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">And that its &quot;name&quot; is &quot;Chris&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">When I request &quot;/user&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Then the &quot;name&quot; property equals &quot;Chris&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="l-Scalar-Plain">Scenario</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Deleting a User</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Given that I want to delete a &quot;User&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">And that its &quot;name&quot; is &quot;Chris&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">When I request &quot;/user&quot;</span>
+</span><span class='line'>        <span class="l-Scalar-Plain">Then the &quot;status&quot; property equals &quot;true&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
 
-Scenario: Creating a new User
-    Given that I want to make a new "User"
-    And that its "name" is "Chris"
-    When I request "/user"
-    Then the response is JSON
-    And the response has a "userId" property
-    And the type of the "userId" property is numeric
-    Then the response status code should be 200
-
-Scenario: Finding a User
-    Given that I want to find a "User"
-    And that its "name" is "Chris"
-    When I request "/user"
-    Then the "name" property equals "Chris"
-
-Scenario: Deleting a User
-    Given that I want to delete a "User"
-    And that its "name" is "Chris"
-    When I request "/user"
-    Then the "status" property equals "true"
-</code></pre>
 
 <p>Now that we have our feature let&#8217;s run it with <strong>bin/behat features/user.feature</strong>. You should
 get errors with a large amount of html spit back out at you. This is because Laravel
@@ -406,28 +688,53 @@ does not have a route/api for what is being tested. We will create that in the n
 <p>Our API is for demonstration purposes only, so I&#8217;m going to go ahead and provide a quick
 stub API that will pass our expectations. Enter the following code into <strong>application/routes.php</strong>.</p>
 
-<pre><code>// in application/routes.php
-Route::post('user', function()
-{
-    $data = array('userId' =&gt; 1);
-    return Response::make(json_encode($data), 200,
-        array('Content-Type' =&gt; 'application/json'));
-});
+<figure class='code'><figcaption><span>application/routes.php (routes.php)</span> <a href='http://kloy.github.com/downloads/code/testing-rest-api-with-behat/routes.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'><span class="c1">// in application/routes.php</span>
+</span><span class='line'><span class="nx">Route</span><span class="o">::</span><span class="na">post</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="k">function</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nv">$data</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;userId&#39;</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">Response</span><span class="o">::</span><span class="na">make</span><span class="p">(</span><span class="nb">json_encode</span><span class="p">(</span><span class="nv">$data</span><span class="p">),</span> <span class="mi">200</span><span class="p">,</span>
+</span><span class='line'>        <span class="k">array</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;application/json&#39;</span><span class="p">));</span>
+</span><span class='line'><span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">Route</span><span class="o">::</span><span class="na">get</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="k">function</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nv">$data</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;name&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;Chris&#39;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">Response</span><span class="o">::</span><span class="na">make</span><span class="p">(</span><span class="nb">json_encode</span><span class="p">(</span><span class="nv">$data</span><span class="p">),</span> <span class="mi">200</span><span class="p">,</span>
+</span><span class='line'>        <span class="k">array</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;application/json&#39;</span><span class="p">));</span>
+</span><span class='line'><span class="p">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">Route</span><span class="o">::</span><span class="na">delete</span><span class="p">(</span><span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="k">function</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nv">$data</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span><span class="s1">&#39;status&#39;</span> <span class="o">=&gt;</span> <span class="s2">&quot;true&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">return</span> <span class="nx">Response</span><span class="o">::</span><span class="na">make</span><span class="p">(</span><span class="nb">json_encode</span><span class="p">(</span><span class="nv">$data</span><span class="p">),</span> <span class="mi">200</span><span class="p">,</span>
+</span><span class='line'>        <span class="k">array</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;application/json&#39;</span><span class="p">));</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
 
-Route::get('user', function()
-{
-    $data = array('name' =&gt; 'Chris');
-    return Response::make(json_encode($data), 200,
-        array('Content-Type' =&gt; 'application/json'));
-});
-
-Route::delete('user', function()
-{
-    $data = array('status' =&gt; "true");
-    return Response::make(json_encode($data), 200,
-        array('Content-Type' =&gt; 'application/json'));
-});
-</code></pre>
 
 <p>Go ahead and run <strong>bin/behat features/user.feature</strong> and you should get all green with a
 message like so&#8230;</p>
@@ -501,23 +808,29 @@ app go ahead and checkout my article on
 
 <p>Now that you have composer integrated make sure your <strong>composer.json</strong> file looks like so&#8230;</p>
 
-<p>  # /path/to/my/project/composer.json
-  {</p>
+<figure class='code'><figcaption><span>/path/to/my/project/composer.json (composer.json)</span> <a href='http://kloy.github.com/downloads/code/yaml-config-files-in-laravel/composer.json'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;require&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;php&quot;</span><span class="p">:</span> <span class="s2">&quot;&gt;=5.3.0&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;symfony/yaml&quot;</span><span class="p">:</span> <span class="s2">&quot;2.0.*&quot;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<pre><code>  "require": {
-      "php": "&gt;=5.3.0",
-      "symfony/yaml": "2.0.*"
-  }
-</code></pre>
-
-<p>  }</p>
 
 <p>And run a composer install if you have not already run composer install, else run composer
 update.</p>
 
-<p>  cd /path/to/my/project
-  php composer.phar install # only if not already installed
-  php composer.phar update</p>
+<pre><code>cd /path/to/my/project
+php composer.phar install # only if not already installed
+php composer.phar update
+</code></pre>
 
 <p>You should now have the symfony yaml component.</p>
 
@@ -526,59 +839,81 @@ update.</p>
 <p>Before we can use the parser, we need to register the parser in our IoC container.
 We will do that now by adding the following code to the bottom of <strong>start.php</strong>.</p>
 
-<p>  # in /path/to/my/project/application/start.php
-  IoC::singleton(&#8216;yaml_parser&#8217;, function()
-  {</p>
+<figure class='code'><figcaption><span>/path/to/my/project/application/start.php  </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="x">IoC::singleton(&#39;yaml_parser&#39;, function()</span>
+</span><span class='line'><span class="x">{</span>
+</span><span class='line'><span class="x">    return new \Symfony\Component\Yaml\Parser();</span>
+</span><span class='line'><span class="x">});</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">IoC::singleton(&#39;yaml_dumper&#39;, function()</span>
+</span><span class='line'><span class="x">{</span>
+</span><span class='line'><span class="x">    return new \Symfony\Component\Yaml\Dumper();</span>
+</span><span class='line'><span class="x">});</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<pre><code>  return new \Symfony\Component\Yaml\Parser();
-</code></pre>
-
-<p>  });</p>
-
-<p>  IoC::singleton(&#8216;yaml_dumper&#8217;, function()
-  {</p>
-
-<pre><code>  return new \Symfony\Component\Yaml\Dumper();
-</code></pre>
-
-<p>  });</p>
 
 <p>What we just did was register the symfony yaml Dumper and Parser objects as singletons
-in our IoC container. We can now get an instance of the yaml parser at any time by calling:</p>
-
-<p>  $parser = IoC::resolve(&#8216;yaml_parser&#8217;);</p>
+in our IoC container. We can now get an instance of the yaml parser at any time by calling: <code>$parser = IoC::resolve('yaml_parser');</code></p>
 
 <h3>Listening to the load event</h3>
 
 <p>Time to hook into that load event mentioned in the intro. We will need to change the
 default <strong>Config::loader</strong> event in <strong>/path/to/project/application/start.php</strong> to use
-our <strong>Config::file()</strong> function instead of the default <strong>Laravel\Config::file()</strong>
+our <code>Config::file()</code> function instead of the default <code>Laravel\Config::file()</code>
 function. We could technically implement an entirely new file loading process for config
 files here, but we only wish to extend the default functionality to meet our needs.
 And&#8230; Here&#8217;s the code.</p>
 
-<p>  # in /path/to/my/project/application/start.php
-  /<em>
-  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
-  | Laravel Configuration Loader
-  |&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211;
-  |
-  | The Laravel configuration loader is responsible for returning an array
-  | of configuration options for a given bundle and file. By default, we
-  | use the files provided with Laravel; however, you are free to use
-  | your own storage mechanism for configuration arrays.
-  |
-  </em>/</p>
+<figure class='code'><figcaption><span>/path/to/my/project/application/start.php (start.php)</span> <a href='http://kloy.github.com/downloads/code/yaml-config-files-in-laravel/start.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">|--------------------------------------------------------------------------</span>
+</span><span class='line'><span class="cm">| Laravel Configuration Loader</span>
+</span><span class='line'><span class="cm">|--------------------------------------------------------------------------</span>
+</span><span class='line'><span class="cm">|</span>
+</span><span class='line'><span class="cm">| The Laravel configuration loader is responsible for returning an array</span>
+</span><span class='line'><span class="cm">| of configuration options for a given bundle and file. By default, we</span>
+</span><span class='line'><span class="cm">| use the files provided with Laravel; however, you are free to use</span>
+</span><span class='line'><span class="cm">| your own storage mechanism for configuration arrays.</span>
+</span><span class='line'><span class="cm">|</span>
+</span><span class='line'><span class="cm">*/</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">Laravel\Event</span><span class="o">::</span><span class="na">listen</span><span class="p">(</span><span class="nx">Laravel\Config</span><span class="o">::</span><span class="na">loader</span><span class="p">,</span> <span class="k">function</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">require_once</span> <span class="nx">path</span><span class="p">(</span><span class="s1">&#39;app&#39;</span><span class="p">)</span><span class="o">.</span><span class="s1">&#39;libraries&#39;</span><span class="o">.</span><span class="nx">DS</span><span class="o">.</span><span class="s1">&#39;myconfig.php&#39;</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">MyConfig</span><span class="o">::</span><span class="na">file</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
+</span><span class='line'>  <span class="c1">// return Laravel\Config::file($bundle, $file);</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<p>  Laravel\Event::listen(Laravel\Config::loader, function($bundle, $file)
-  {</p>
-
-<pre><code>require_once path('app').'libraries'.DS.'myconfig.php';
-return MyConfig::file($bundle, $file);
-// return Laravel\Config::file($bundle, $file);
-</code></pre>
-
-<p>  });</p>
 
 <p>The require_once might have you scratching your head a bit if you are use to using
 Laravel&#8217;s autoloader. This is a work around as the autoloaders don&#8217;t get initialized
@@ -588,58 +923,98 @@ well.</p>
 
 <h3>MyConfig::file()</h3>
 
-<p>This is where we extend, or technically override, the default <strong>Laravel\Config::file()</strong>
+<p>This is where we extend, or technically override, the default <code>Laravel\Config::file()</code>
 function. On the with code!</p>
 
-<p>  # in /path/to/my/project/application/libraries/myconfig.php
-  &lt;?php</p>
+<figure class='code'><figcaption><span>/path/to/my/project/application/libraries/myconfig.php (myconfig.php)</span> <a href='http://kloy.github.com/downloads/code/yaml-config-files-in-laravel/myconfig.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">MyConfig</span> <span class="k">extends</span> <span class="nx">Laravel\Config</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="sd">/**</span>
+</span><span class='line'><span class="sd">   * Load the configuration items from a configuration file.</span>
+</span><span class='line'><span class="sd">   *</span>
+</span><span class='line'><span class="sd">   * @param  string  $bundle</span>
+</span><span class='line'><span class="sd">   * @param  string  $file</span>
+</span><span class='line'><span class="sd">   * @return array</span>
+</span><span class='line'><span class="sd">   */</span>
+</span><span class='line'>  <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">file</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="nv">$config</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Configuration files cascade. Typically, the bundle configuration array is</span>
+</span><span class='line'>    <span class="c1">// loaded first, followed by the environment array, providing the convenient</span>
+</span><span class='line'>    <span class="c1">// cascading of configuration options across environments.</span>
+</span><span class='line'>    <span class="k">foreach</span> <span class="p">(</span><span class="k">static</span><span class="o">::</span><span class="na">paths</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$directory</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nv">$semi_path</span> <span class="o">=</span> <span class="nv">$directory</span><span class="o">.</span><span class="nv">$file</span><span class="p">;</span>
+</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="nv">$directory</span> <span class="o">!==</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// Typical php configs are most common, so check first.</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$path</span> <span class="o">=</span> <span class="nv">$semi_path</span><span class="o">.</span><span class="nx">EXT</span><span class="p">))</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>          <span class="nv">$config</span> <span class="o">=</span> <span class="nb">array_merge</span><span class="p">(</span><span class="nv">$config</span><span class="p">,</span> <span class="k">require</span> <span class="nv">$path</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="c1">// Let&#39;s get a yaml config</span>
+</span><span class='line'>        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">$semi_path</span><span class="s2">.yml&quot;</span><span class="p">))</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>          <span class="nv">$parser</span> <span class="o">=</span> <span class="nx">IoC</span><span class="o">::</span><span class="na">resolve</span><span class="p">(</span><span class="s1">&#39;yaml_parser&#39;</span><span class="p">);</span>
+</span><span class='line'>          <span class="nv">$contents</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$path</span><span class="p">);</span>
+</span><span class='line'>          <span class="nv">$config</span> <span class="o">=</span> <span class="nb">array_merge</span><span class="p">(</span><span class="nv">$config</span><span class="p">,</span> <span class="nv">$parser</span><span class="o">-&gt;</span><span class="na">parse</span><span class="p">(</span><span class="nv">$contents</span><span class="p">));</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="nv">$config</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<p>  class MyConfig extends Laravel\Config
-  {</p>
-
-<pre><code>/**
- * Load the configuration items from a configuration file.
- *
- * @param  string  $bundle
- * @param  string  $file
- * @return array
- */
-public static function file($bundle, $file)
-{
-  $config = array();
-
-  // Configuration files cascade. Typically, the bundle configuration array is
-  // loaded first, followed by the environment array, providing the convenient
-  // cascading of configuration options across environments.
-  foreach (static::paths($bundle) as $directory)
-  {
-    $semi_path = $directory.$file;
-    if ($directory !== '')
-    {
-      // Typical php configs are most common, so check first.
-      if (file_exists($path = $semi_path.EXT))
-      {
-        $config = array_merge($config, require $path);
-      }
-      // Let's get a yaml config
-      else if (file_exists($path = "$semi_path.yml"))
-      {
-        $parser = IoC::resolve('yaml_parser');
-        $contents = file_get_contents($path);
-        $config = array_merge($config, $parser-&gt;parse($contents));
-      }
-    }
-  }
-
-  return $config;
-}
-</code></pre>
-
-<p>  }</p>
 
 <h3>Final notes</h3>
 
-<p>We can now use yaml files as config files. Nothing special is needed when calling Config::get(),
+<p>We can now use yaml files as config files. Nothing special is needed when calling <code>Config::get()</code>,
 just use it as normal. For the astute programmer, you may notice that you can easily
 add more config parsers in the if, if else block.</p>
 ]]></content>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: PHP | Keith Loy]]></title>
   <link href="http://kloy.github.com/blog/categories/php/atom.xml" rel="self"/>
   <link href="http://kloy.github.com/"/>
-  <updated>2012-10-05T08:47:47-05:00</updated>
+  <updated>2012-10-05T19:21:45-05:00</updated>
   <id>http://kloy.github.com/</id>
   <author>
     <name><![CDATA[Keith Loy]]></name>
@@ -35,23 +35,28 @@ app go ahead and checkout my article on
 
 <p>Now that you have composer integrated make sure your <strong>composer.json</strong> file looks like so...</p>
 
-<p>  # /path/to/my/project/composer.json
-  {</p>
-
-<pre><code>  "require": {
-      "php": "&gt;=5.3.0",
-      "symfony/yaml": "2.0.*"
-  }
-</code></pre>
-
-<p>  }</p>
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>/path/to/my/project/composer.json (composer.json)</span> <a href='/downloads/code/yaml-config-files-in-laravel/composer.json'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;require&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span class='line'>        <span class="nt">&quot;php&quot;</span><span class="p">:</span> <span class="s2">&quot;&gt;=5.3.0&quot;</span><span class="p">,</span>
+</span><span class='line'>        <span class="nt">&quot;symfony/yaml&quot;</span><span class="p">:</span> <span class="s2">&quot;2.0.*&quot;</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <p>And run a composer install if you have not already run composer install, else run composer
 update.</p>
 
-<p>  cd /path/to/my/project
-  php composer.phar install # only if not already installed
-  php composer.phar update</p>
+<pre><code>cd /path/to/my/project
+php composer.phar install # only if not already installed
+php composer.phar update
+</code></pre>
 
 <p>You should now have the symfony yaml component.</p>
 
@@ -60,59 +65,91 @@ update.</p>
 <p>Before we can use the parser, we need to register the parser in our IoC container.
 We will do that now by adding the following code to the bottom of <strong>start.php</strong>.</p>
 
-<p>  # in /path/to/my/project/application/start.php
-  IoC::singleton('yaml_parser', function()
-  {</p>
-
-<pre><code>  return new \Symfony\Component\Yaml\Parser();
-</code></pre>
-
-<p>  });</p>
-
-<p>  IoC::singleton('yaml_dumper', function()
-  {</p>
-
-<pre><code>  return new \Symfony\Component\Yaml\Dumper();
-</code></pre>
-
-<p>  });</p>
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>/path/to/my/project/application/start.php  </span></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="x">IoC::singleton(&#39;yaml_parser&#39;, function()</span>
+</span><span class='line'><span class="x">{&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">&lt;pre&gt;&lt;code&gt;return new \Symfony\Component\Yaml\Parser();</span>
+</span><span class='line'><span class="x">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">&lt;p&gt;});&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">&lt;p&gt;IoC::singleton(&#39;yaml_dumper&#39;, function()</span>
+</span><span class='line'><span class="x">{&lt;/p&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">&lt;pre&gt;&lt;code&gt;return new \Symfony\Component\Yaml\Dumper();</span>
+</span><span class='line'><span class="x">&lt;/code&gt;&lt;/pre&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="x">&lt;p&gt;});</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <p>What we just did was register the symfony yaml Dumper and Parser objects as singletons
-in our IoC container. We can now get an instance of the yaml parser at any time by calling:</p>
-
-<p>  $parser = IoC::resolve('yaml_parser');</p>
+in our IoC container. We can now get an instance of the yaml parser at any time by calling: <code>$parser = IoC::resolve('yaml_parser');</code></p>
 
 <h3>Listening to the load event</h3>
 
 <p>Time to hook into that load event mentioned in the intro. We will need to change the
 default <strong>Config::loader</strong> event in <strong>/path/to/project/application/start.php</strong> to use
-our <strong>Config::file()</strong> function instead of the default <strong>Laravel\Config::file()</strong>
+our <code>Config::file()</code> function instead of the default <code>Laravel\Config::file()</code>
 function. We could technically implement an entirely new file loading process for config
 files here, but we only wish to extend the default functionality to meet our needs.
 And... Here's the code.</p>
 
-<p>  # in /path/to/my/project/application/start.php
-  /<em>
-  |--------------------------------------------------------------------------
-  | Laravel Configuration Loader
-  |--------------------------------------------------------------------------
-  |
-  | The Laravel configuration loader is responsible for returning an array
-  | of configuration options for a given bundle and file. By default, we
-  | use the files provided with Laravel; however, you are free to use
-  | your own storage mechanism for configuration arrays.
-  |
-  </em>/</p>
-
-<p>  Laravel\Event::listen(Laravel\Config::loader, function($bundle, $file)
-  {</p>
-
-<pre><code>require_once path('app').'libraries'.DS.'myconfig.php';
-return MyConfig::file($bundle, $file);
-// return Laravel\Config::file($bundle, $file);
-</code></pre>
-
-<p>  });</p>
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>/path/to/my/project/application/start.php (start.php)</span> <a href='/downloads/code/yaml-config-files-in-laravel/start.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'><span class="cm">/*</span>
+</span><span class='line'><span class="cm">|--------------------------------------------------------------------------</span>
+</span><span class='line'><span class="cm">| Laravel Configuration Loader</span>
+</span><span class='line'><span class="cm">|--------------------------------------------------------------------------</span>
+</span><span class='line'><span class="cm">|</span>
+</span><span class='line'><span class="cm">| The Laravel configuration loader is responsible for returning an array</span>
+</span><span class='line'><span class="cm">| of configuration options for a given bundle and file. By default, we</span>
+</span><span class='line'><span class="cm">| use the files provided with Laravel; however, you are free to use</span>
+</span><span class='line'><span class="cm">| your own storage mechanism for configuration arrays.</span>
+</span><span class='line'><span class="cm">|</span>
+</span><span class='line'><span class="cm">*/</span>
+</span><span class='line'>
+</span><span class='line'><span class="nx">Laravel\Event</span><span class="o">::</span><span class="na">listen</span><span class="p">(</span><span class="nx">Laravel\Config</span><span class="o">::</span><span class="na">loader</span><span class="p">,</span> <span class="k">function</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="k">require_once</span> <span class="nx">path</span><span class="p">(</span><span class="s1">&#39;app&#39;</span><span class="p">)</span><span class="o">.</span><span class="s1">&#39;libraries&#39;</span><span class="o">.</span><span class="nx">DS</span><span class="o">.</span><span class="s1">&#39;myconfig.php&#39;</span><span class="p">;</span>
+</span><span class='line'>  <span class="k">return</span> <span class="nx">MyConfig</span><span class="o">::</span><span class="na">file</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">);</span>
+</span><span class='line'>  <span class="c1">// return Laravel\Config::file($bundle, $file);</span>
+</span><span class='line'><span class="p">});</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <p>The require_once might have you scratching your head a bit if you are use to using
 Laravel's autoloader. This is a work around as the autoloaders don't get initialized
@@ -122,58 +159,97 @@ well.</p>
 
 <h3>MyConfig::file()</h3>
 
-<p>This is where we extend, or technically override, the default <strong>Laravel\Config::file()</strong>
+<p>This is where we extend, or technically override, the default <code>Laravel\Config::file()</code>
 function. On the with code!</p>
 
-<p>  # in /path/to/my/project/application/libraries/myconfig.php
-  &lt;?php</p>
-
-<p>  class MyConfig extends Laravel\Config
-  {</p>
-
-<pre><code>/**
- * Load the configuration items from a configuration file.
- *
- * @param  string  $bundle
- * @param  string  $file
- * @return array
- */
-public static function file($bundle, $file)
-{
-  $config = array();
-
-  // Configuration files cascade. Typically, the bundle configuration array is
-  // loaded first, followed by the environment array, providing the convenient
-  // cascading of configuration options across environments.
-  foreach (static::paths($bundle) as $directory)
-  {
-    $semi_path = $directory.$file;
-    if ($directory !== '')
-    {
-      // Typical php configs are most common, so check first.
-      if (file_exists($path = $semi_path.EXT))
-      {
-        $config = array_merge($config, require $path);
-      }
-      // Let's get a yaml config
-      else if (file_exists($path = "$semi_path.yml"))
-      {
-        $parser = IoC::resolve('yaml_parser');
-        $contents = file_get_contents($path);
-        $config = array_merge($config, $parser-&gt;parse($contents));
-      }
-    }
-  }
-
-  return $config;
-}
-</code></pre>
-
-<p>  }</p>
+<p><div class='bogus-wrapper'><notextile><figure class='code'><figcaption><span>/path/to/my/project/application/libraries/myconfig.php (myconfig.php)</span> <a href='/downloads/code/yaml-config-files-in-laravel/myconfig.php'>download</a></figcaption>
+ <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='php'><span class='line'><span class="cp">&lt;?php</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">MyConfig</span> <span class="k">extends</span> <span class="nx">Laravel\Config</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>  <span class="sd">/**</span>
+</span><span class='line'><span class="sd">   * Load the configuration items from a configuration file.</span>
+</span><span class='line'><span class="sd">   *</span>
+</span><span class='line'><span class="sd">   * @param  string  $bundle</span>
+</span><span class='line'><span class="sd">   * @param  string  $file</span>
+</span><span class='line'><span class="sd">   * @return array</span>
+</span><span class='line'><span class="sd">   */</span>
+</span><span class='line'>  <span class="k">public</span> <span class="k">static</span> <span class="k">function</span> <span class="nf">file</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">,</span> <span class="nv">$file</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">{</span>
+</span><span class='line'>    <span class="nv">$config</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Configuration files cascade. Typically, the bundle configuration array is</span>
+</span><span class='line'>    <span class="c1">// loaded first, followed by the environment array, providing the convenient</span>
+</span><span class='line'>    <span class="c1">// cascading of configuration options across environments.</span>
+</span><span class='line'>    <span class="k">foreach</span> <span class="p">(</span><span class="k">static</span><span class="o">::</span><span class="na">paths</span><span class="p">(</span><span class="nv">$bundle</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$directory</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>      <span class="nv">$semi_path</span> <span class="o">=</span> <span class="nv">$directory</span><span class="o">.</span><span class="nv">$file</span><span class="p">;</span>
+</span><span class='line'>      <span class="k">if</span> <span class="p">(</span><span class="nv">$directory</span> <span class="o">!==</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+</span><span class='line'>      <span class="p">{</span>
+</span><span class='line'>        <span class="c1">// Typical php configs are most common, so check first.</span>
+</span><span class='line'>        <span class="k">if</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$path</span> <span class="o">=</span> <span class="nv">$semi_path</span><span class="o">.</span><span class="nx">EXT</span><span class="p">))</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>          <span class="nv">$config</span> <span class="o">=</span> <span class="nb">array_merge</span><span class="p">(</span><span class="nv">$config</span><span class="p">,</span> <span class="k">require</span> <span class="nv">$path</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>        <span class="c1">// Let&#39;s get a yaml config</span>
+</span><span class='line'>        <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nb">file_exists</span><span class="p">(</span><span class="nv">$path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">$semi_path</span><span class="s2">.yml&quot;</span><span class="p">))</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>          <span class="nv">$parser</span> <span class="o">=</span> <span class="nx">IoC</span><span class="o">::</span><span class="na">resolve</span><span class="p">(</span><span class="s1">&#39;yaml_parser&#39;</span><span class="p">);</span>
+</span><span class='line'>          <span class="nv">$contents</span> <span class="o">=</span> <span class="nb">file_get_contents</span><span class="p">(</span><span class="nv">$path</span><span class="p">);</span>
+</span><span class='line'>          <span class="nv">$config</span> <span class="o">=</span> <span class="nb">array_merge</span><span class="p">(</span><span class="nv">$config</span><span class="p">,</span> <span class="nv">$parser</span><span class="o">-&gt;</span><span class="na">parse</span><span class="p">(</span><span class="nv">$contents</span><span class="p">));</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="nv">$config</span><span class="p">;</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure></notextile></div></p>
 
 <h3>Final notes</h3>
 
-<p>We can now use yaml files as config files. Nothing special is needed when calling Config::get(),
+<p>We can now use yaml files as config files. Nothing special is needed when calling <code>Config::get()</code>,
 just use it as normal. For the astute programmer, you may notice that you can easily
 add more config parsers in the if, if else block.</p>
 ]]></content>
