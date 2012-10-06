@@ -66,7 +66,7 @@ Let's do that.
 {% include_code features/bootstrap/FeatureContext.php testing-rest-api-with-behat/FeatureContext.php %}
 
 So what we did is require our RestContext.php file and instantiate it in
-*$this->useContext('RestContext', new RestContext($parameters));*. Now when you type
+`$this->useContext('RestContext', new RestContext($parameters));`. Now when you type
 **bin/behat -dl** you should see a list commands that look like...
 
 	# output from cli
