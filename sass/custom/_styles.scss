@@ -1,2 +1,78 @@
 // This File is imported last, and will override other styles in the cascade
 // Add styles here to make changes without digging in too much
+
+html {
+	background: $header-bg;
+}
+
+body header {
+
+	padding: 0.75em;
+
+	h1 a {
+		color: $header-color !important;
+	}
+}
+
+body #content {
+	background: $header-bg;
+	border: none;
+}
+
+body > nav {
+	background: $nav-bg;
+	border: #E5E5E5 1px solid;
+
+	a {
+		color: #9C0001;
+	}
+
+	a:visited {
+		color: #9C0001;
+	}
+
+	a:hover {
+		color: lighten(#9C0001, 10);
+	}
+}
+
+body .sidebar {
+	background: $header-bg;
+}
+
+body .toggle-sidebar {
+	display: none;
+}
+
+body #main {
+	background: $header-bg;
+}
+
+body .blog-index article {
+	background: none;
+}
+
+#content .blog-index a[rel="full-article"] {
+	background: #FFF;
+	border: 1px solid #E5E5E5;
+}
+
+#content .blog-index a[rel="full-article"]:hover {
+	background: #9C0001;
+}
+
+body .credit {
+	display: none;
+}
+
+a {
+	color: #9C0001;
+}
+
+a:hover {
+	color: lighten(#9C0001, 10);
+}
+
+pre {
+	background: #FDF6E3;
+}
